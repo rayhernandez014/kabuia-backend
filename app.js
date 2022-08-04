@@ -4,7 +4,8 @@ require('express-async-errors')
 const cors = require('cors')
 const config = require('./utils/config')
 const mongoose = require('mongoose')
-//const usersRouter = require('./controllers/users')
+const customersRouter = require('./controllers/customers')
+const contractorsRouter = require('./controllers/contractors')
 const middleware = require('./utils/middleware')
 const logger = require('./utils/logger')
 
@@ -21,7 +22,9 @@ app.use(middleware.requestLogger)
 app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
-//app.use('/api/login', loginRouter)
+
+app.use('/api/customers', customersRouter)
+app.use('/api/contractors', contractorsRouter)
 
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)
