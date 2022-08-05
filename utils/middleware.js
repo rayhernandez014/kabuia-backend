@@ -1,6 +1,7 @@
 const logger = require('./logger')
-//const User = require('../models/user')
-//const jwt = require('jsonwebtoken')
+const Customer = require('../models/customer')
+const jwt = require('jsonwebtoken')
+const config = require('./config')
 
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
@@ -27,47 +28,43 @@ const errorHandler = (error, request, response, next) => {
   else if (error.name === 'JsonWebTokenError') {
     return response.status(401).json({ error: 'invalid token' })
   }
-  else if (error.name === 'TokenExpiredError') {
-    return response.status(401).json({ error: 'token expired' })
-  }
 
   next(error)
 }
 
-/*
-const tokenExtractor = (request, response, next) => {
+const customerExtractor = async (request, response, next) => {
 
   const authorization = request.get('authorization')
   if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
-    request.token = authorization.substring(7)
+
+    const token = authorization.substring(7)
+    const decodedToken = jwt.verify(token, config.SECRET)
+
+    const registeredToken = await config.redisClient.get(decodedToken.id)
+
+    const customer = await Customer.findById(decodedToken.id)
+
+    if (!customer) {
+      return response.status(404).json({ error: 'This account does not exist' })
+    }
+    if (!registeredToken) {
+      return response.status(401).json({ error: 'This session has expired' })
+    }
+
+    request.customer = customer
+
   }
-  else {
-    request.token = null
+  else{
+    return response.status(404).json({ error: 'Token missing or invalid' })
   }
 
   next()
-}
-
-const userExtractor = async (request, response, next) => {
-
-  const token = request.token
-  const decodedToken = jwt.verify(token, process.env.SECRET)
-
-  const user = await User.findById(decodedToken.id)
-  if (!user) {
-    return response.status(404).json({ error: 'User does not exist' })
-  }
-
-  request.user = user
-
-  next()
 
 }
-*/
+
 module.exports = {
   requestLogger,
   unknownEndpoint,
   errorHandler,
-  //tokenExtractor,
-  //userExtractor
+  customerExtractor
 }

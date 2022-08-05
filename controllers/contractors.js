@@ -1,8 +1,14 @@
 const bcrypt = require('bcrypt')
 const contractorsRouter = require('express').Router()
 const Contractor = require('../models/contractor')
+const middleware = require('../utils/middleware')
 
-contractorsRouter.get('/', async (request, response) => {
+contractorsRouter.get('/', middleware.customerExtractor, async (request, response) => {
+
+  const customer = request.customer
+
+  console.log(`asked by ${customer.email}`)
+
   const contractors = await Contractor.find({})
   response.json(contractors)
 })
