@@ -5,16 +5,17 @@ const serviceOfferSchema = new mongoose.Schema({
   NI: Boolean,
   contractor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'contractor'
+    ref: 'Contractor',
+    required: true
   },
   serviceRequest: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'serviceRequest',
+    ref: 'ServiceRequest',
     required: true
   },
   contract: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'contract'
+    ref: 'Contract'
   }
 })
 

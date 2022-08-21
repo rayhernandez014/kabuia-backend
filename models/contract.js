@@ -3,17 +3,17 @@ const mongoose = require('mongoose')
 const contractSchema = new mongoose.Schema({
   serviceRequest: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'serviceRequest',
+    ref: 'ServiceRequest',
     required: true
   },
   serviceOffer: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'serviceOffer',
+    ref: 'ServiceOffer',
     required: true
   },
   reviews: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'review'
+    ref: 'Review'
   }],
   status: {
     type: String,

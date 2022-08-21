@@ -21,6 +21,13 @@ const contractorSchema = new mongoose.Schema({
     },
     required: true
   },
+  phone: {
+    type: String,
+    required: [
+      () => this.email.checkRequired(),
+      'Phone number is required if email is not specified'
+    ]
+  },
   passwordHash: {
     type: String,
     required: true
@@ -33,11 +40,11 @@ const contractorSchema = new mongoose.Schema({
   },
   serviceOffers: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'serviceOffer'
+    ref: 'ServiceOffer'
   }],
   reviews: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'review'
+    ref: 'Review'
   }],
   cancelationRatio: {
     type: Number,

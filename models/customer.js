@@ -13,13 +13,33 @@ const customerSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    validate: {
-      validator: (v) => {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+    required: [
+      function() {
+        return !this.phone
       },
-      message: props => `"${props.value}" is not a valid email`
-    },
-    required: true
+      'Email is required if phone number is not specified'
+    ],
+    validate: {
+      validator: function (v) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || (this.phone && !this.email)
+      },
+      message: props => `${props.value} is not a valid email`
+    }
+  },
+  phone: {
+    type: String,
+    required: [
+      function() {
+        return !this.email
+      },
+      'Phone number is required if email is not specified'
+    ],
+    validate: {
+      validator: function (v) {
+        return /^\+?[1-9][0-9]{7,14}$/.test(v) || (this.email && !this.phone)
+      },
+      message: props => `${props.value} is not a valid phone number`
+    }
   },
   passwordHash: {
     type: String,
@@ -28,11 +48,11 @@ const customerSchema = new mongoose.Schema({
   photo: String,
   serviceRequests: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'serviceRequest'
+    ref: 'ServiceRequest'
   }],
   reviews: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'review'
+    ref: 'Review'
   }],
   cancelationRatio: {
     type: Number,

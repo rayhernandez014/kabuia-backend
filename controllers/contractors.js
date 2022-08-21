@@ -14,9 +14,7 @@ contractorsRouter.get('/', middleware.customerExtractor, async (request, respons
 })
 
 contractorsRouter.post('/', async (request, response) => {
-  const { firstname, lastname, email, password, photo, portfolio } = request.body
-
-  const stripeID = ''
+  const { firstname, lastname, email, phone, password, photo, portfolio, skills, stripeID } = request.body
 
   if (!password) {
     return response.status(400).json({
@@ -40,10 +38,12 @@ contractorsRouter.post('/', async (request, response) => {
     firstname: firstname,
     lastname: lastname,
     email: email,
+    phone: phone,
     passwordHash: passwordHash,
     photo: photo ?? '',
     portfolio: portfolio ?? '',
-    serviceRequests: [],
+    skills: skills,
+    serviceOffers: [],
     reviews: [],
     cancelationRatio: 0,
     stripeID: stripeID ?? ''

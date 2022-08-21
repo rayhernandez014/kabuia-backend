@@ -16,17 +16,17 @@ const reviewSchema = new mongoose.Schema({
   },
   customer: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'customer',
+    ref: 'Customer',
     required: true
   },
   contractor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'contractor',
+    ref: 'Contractor',
     required: true
   },
   contract: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'contract',
+    ref: 'Contract',
     required: true
   }
 })

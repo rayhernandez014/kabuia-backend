@@ -8,9 +8,7 @@ customersRouter.get('/', async (request, response) => {
 })
 
 customersRouter.post('/', async (request, response) => {
-  const { firstname, lastname, email, password, photo } = request.body
-
-  const stripeID = ''
+  const { firstname, lastname, email, phone, password, photo, stripeID } = request.body
 
   if (!password) {
     return response.status(400).json({
@@ -22,9 +20,14 @@ customersRouter.post('/', async (request, response) => {
     })
   }
 
-  const existingCustomer = await Customer.findOne({ email })
-  if (existingCustomer) {
+  let existingCustomer = await Customer.findOne({ email })
+  if (existingCustomer && existingCustomer?.email) {
     return response.status(400).json({ error: 'This email is already registered as a customer' })
+  }
+
+  existingCustomer = await Customer.findOne({ phone })
+  if (existingCustomer && existingCustomer?.phone) {
+    return response.status(400).json({ error: 'This phone is already registered as a customer' })
   }
 
   const saltRounds = 10
@@ -33,7 +36,8 @@ customersRouter.post('/', async (request, response) => {
   const customer = new Customer({
     firstname: firstname,
     lastname: lastname,
-    email: email,
+    email: email ?? '',
+    phone: phone ?? '',
     passwordHash: passwordHash,
     photo: photo ?? '',
     serviceRequests: [],

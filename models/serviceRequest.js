@@ -13,7 +13,8 @@ const serviceRequestSchema = new mongoose.Schema({
   },
   customer: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'customer'
+    ref: 'Customer',
+    required: true
   },
   album: String,
   TSD: {
@@ -22,11 +23,11 @@ const serviceRequestSchema = new mongoose.Schema({
   },
   serviceOffers: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'serviceOffer'
+    ref: 'ServiceOffer'
   }],
   contract: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'contract'
+    ref: 'Contract'
   }
 })
 
