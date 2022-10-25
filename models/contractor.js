@@ -13,27 +13,44 @@ const contractorSchema = new mongoose.Schema({
   },
   email: {
     type: String,
+    required: [
+      function() {
+        return !this.phone
+      },
+      'Email is required if phone number is not specified'
+    ],
     validate: {
-      validator: (v) => {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+      validator: function (v) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || (this.phone && !this.email)
       },
       message: props => `${props.value} is not a valid email`
-    },
-    required: true
+    }
   },
   phone: {
     type: String,
     required: [
-      () => this.email.checkRequired(),
+      function() {
+        return !this.email
+      },
       'Phone number is required if email is not specified'
-    ]
+    ],
+    validate: {
+      validator: function (v) {
+        return /^\+?[1-9][0-9]{7,14}$/.test(v) || (this.email && !this.phone)
+      },
+      message: props => `${props.value} is not a valid phone number`
+    }
   },
   passwordHash: {
     type: String,
     required: true
   },
-  photo: String,
-  portfolio: String,
+  photo: {
+    type: String
+  },
+  portfolio: {
+    type: [String]
+  },
   skills: {
     type: [String],
     required: true
@@ -50,7 +67,17 @@ const contractorSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  stripeID: String
+  stripeID: {
+    type: String
+  },
+  latitude: {
+    type: Number,
+    required: true
+  },
+  longitude: {
+    type: Number,
+    required: true
+  }
 })
 
 contractorSchema.set('toJSON', {

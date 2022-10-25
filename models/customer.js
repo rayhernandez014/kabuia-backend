@@ -45,7 +45,9 @@ const customerSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  photo: String,
+  photo: {
+    type: String
+  },
   serviceRequests: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ServiceRequest'
@@ -58,7 +60,17 @@ const customerSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  stripeID: String
+  stripeID: {
+    type: String
+  },
+  latitude: {
+    type: Number,
+    required: true
+  },
+  longitude: {
+    type: Number,
+    required: true
+  }
 })
 
 customerSchema.set('toJSON', {

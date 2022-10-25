@@ -7,7 +7,7 @@ const config = require('../utils/config')
 customerLoginRouter.post('/', async (request, response) => {
   const { email, password } = request.body
 
-  const customer = await Customer.findOne({ email })
+  const customer = await Customer.findOne({ email }).exec()
   const passwordCorrect = customer === null
     ? false
     : await bcrypt.compare(password, customer.passwordHash)

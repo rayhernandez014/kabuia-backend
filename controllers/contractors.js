@@ -9,7 +9,7 @@ contractorsRouter.get('/', middleware.customerExtractor, async (request, respons
 
   console.log(`asked by ${customer.email}`)
 
-  const contractors = await Contractor.find({})
+  const contractors = await Contractor.find({}).exec()
   response.json(contractors)
 })
 
@@ -26,7 +26,7 @@ contractorsRouter.post('/', async (request, response) => {
     })
   }
 
-  const existingContractor = await Contractor.findOne({ email })
+  const existingContractor = await Contractor.findOne({ email }).exec()
   if (existingContractor) {
     return response.status(400).json({ error: 'This email is already registered as a contractor' })
   }
@@ -56,7 +56,7 @@ contractorsRouter.post('/', async (request, response) => {
 
 contractorsRouter.delete( '/:id', async (request, response) => {
 
-  await Contractor.findByIdAndRemove(request.params.id)
+  await Contractor.findByIdAndRemove(request.params.id).exec()
   response.status(204).end()
 
 })
@@ -75,7 +75,7 @@ contractorsRouter.put('/:id', async (request, response) => {
     new: true,
     runValidators: true,
     context: 'query'
-  })
+  }).exec()
   response.json(updatedContractor)
 })
 module.exports = contractorsRouter

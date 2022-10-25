@@ -1,8 +1,24 @@
 const mongoose = require('mongoose')
 
 const serviceOfferSchema = new mongoose.Schema({
-  price: Number,
-  NI: Boolean,
+  price: {
+    type: Number,
+    required: [
+      function() {
+        return !this.NI
+      },
+      'A price must be provided unless a Inspection Request has been submitted'
+    ]
+  },
+  NI: {
+    type: Boolean,
+    required: [
+      function() {
+        return !this.price
+      },
+      'A Inspection Request must be submitted if no price is provided'
+    ]
+  },
   contractor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Contractor',

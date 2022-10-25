@@ -19,7 +19,9 @@ const contractSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  album: String
+  album: {
+    type: [String]
+  }
 })
 
 contractSchema.set('toJSON', {

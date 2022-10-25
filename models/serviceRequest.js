@@ -16,7 +16,9 @@ const serviceRequestSchema = new mongoose.Schema({
     ref: 'Customer',
     required: true
   },
-  album: String,
+  album: {
+    type: String
+  },
   TSD: {
     type: Date,
     required: true
@@ -28,6 +30,18 @@ const serviceRequestSchema = new mongoose.Schema({
   contract: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Contract'
+  },
+  latitude: {
+    type: Number,
+    required: true
+  },
+  longitude: {
+    type: Number,
+    required: true
+  },
+  address: {
+    type: String,
+    required: true
   }
 })
 
