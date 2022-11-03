@@ -3,7 +3,9 @@ const mongoose = require('mongoose')
 const reviewSchema = new mongoose.Schema({
   grade: {
     type: Number,
-    required: true
+    required: true,
+    min: 0,
+    max: 5
   },
   description: {
     type: String,
@@ -12,6 +14,7 @@ const reviewSchema = new mongoose.Schema({
   },
   type: {
     type: String,
+    enum: ['customerToContractor', 'contractorToCustomer'],
     required: true
   },
   customer: {

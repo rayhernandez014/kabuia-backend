@@ -16,11 +16,19 @@ const contractSchema = new mongoose.Schema({
     ref: 'Review'
   }],
   status: {
-    type: String,
+    type: Boolean,
     required: true
   },
   album: {
     type: [String]
+  },
+  customerCancelRequest: {
+    type: Boolean,
+    required: true
+  },
+  contractorCancelRequest: {
+    type: Boolean,
+    required: true
   }
 })
 

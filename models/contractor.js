@@ -53,7 +53,21 @@ const contractorSchema = new mongoose.Schema({
   },
   skills: {
     type: [String],
-    required: true
+    required: true,
+    validate: {
+      validator: function (v) {
+        const validSkills = ['carpenter', 'driver']
+        let skillIsValid = true
+        for (const skill of v) {
+          if (!validSkills.includes(skill)){
+            skillIsValid = false
+            break
+          }
+        }
+        return v.length && skillIsValid
+      },
+      message: 'Please provide at least one skill'
+    }
   },
   serviceOffers: [{
     type: mongoose.Schema.Types.ObjectId,
