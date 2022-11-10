@@ -4,13 +4,14 @@ const Customer = require('../models/customer')
 const config = require('../utils/config')
 const middleware = require('../utils/middleware')
 
+//just for testing purposes
 customersRouter.get('/', async (request, response) => {
   const customers = await Customer.find({}).exec()
   response.json(customers)
 })
 
 customersRouter.post('/', async (request, response) => {
-  const { firstname, lastname, email, phone, password, photo, stripeID } = request.body
+  const { firstname, lastname, email, phone, password, photo, stripeID, latitude, longitude } = request.body
 
   if (!password) {
     return response.status(400).json({
@@ -45,7 +46,9 @@ customersRouter.post('/', async (request, response) => {
     serviceRequests: [],
     reviews: [],
     cancelationRatio: 0,
-    stripeID: stripeID ?? ''
+    stripeID: stripeID ?? '',
+    longitude: longitude,
+    latitude: latitude
   })
 
   const savedCustomer = await customer.save()

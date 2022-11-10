@@ -32,6 +32,16 @@ const serviceOfferSchema = new mongoose.Schema({
   contract: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Contract'
+  },
+  cancelContract: {
+    type: Boolean,
+    required: true,
+    validate: {
+      validator: function (v) {
+        return !(v && !this.contract)
+      },
+      message: 'A contract must exist before a cancel request is submitted'
+    }
   }
 })
 

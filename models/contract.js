@@ -21,14 +21,6 @@ const contractSchema = new mongoose.Schema({
   },
   album: {
     type: [String]
-  },
-  customerCancelRequest: {
-    type: Boolean,
-    required: true
-  },
-  contractorCancelRequest: {
-    type: Boolean,
-    required: true
   }
 })
 

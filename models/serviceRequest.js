@@ -42,6 +42,16 @@ const serviceRequestSchema = new mongoose.Schema({
   address: {
     type: String,
     required: true
+  },
+  cancelContract: {
+    type: Boolean,
+    required: true,
+    validate: {
+      validator: function (v) {
+        return !(v && !this.contract)
+      },
+      message: 'A contract must exist before a cancel request is submitted'
+    }
   }
 })
 

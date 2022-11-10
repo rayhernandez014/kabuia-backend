@@ -3,6 +3,7 @@ const contractorsRouter = require('express').Router()
 const Contractor = require('../models/contractor')
 const middleware = require('../utils/middleware')
 
+//just for testing purposes
 contractorsRouter.get('/', middleware.customerExtractor, async (request, response) => {
 
   const customer = request.customer
