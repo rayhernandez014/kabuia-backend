@@ -56,10 +56,6 @@ const customerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Review'
   }],
-  cancelationRatio: {
-    type: Number,
-    required: true
-  },
   stripeID: {
     type: String
   },
