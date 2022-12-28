@@ -2,12 +2,13 @@ const bcrypt = require('bcrypt')
 const customersRouter = require('express').Router()
 const Customer = require('../models/customer')
 const config = require('../utils/config')
-const middleware = require('../utils/middleware')
+const { customerExtractor, customerValidator } = require('../utils/middleware')
+const { validatePassword } = require('../utils/security')
 
-//just for testing purposes
-customersRouter.get('/', async (request, response) => {
-  const customers = await Customer.find({}).exec()
-  response.json(customers)
+customersRouter.get('/', customerExtractor, async (request, response) => {
+  const id = request.customer._id.toString()
+  const customer = await Customer.findById( id ).exec()
+  response.json(customer)
 })
 
 customersRouter.post('/', async (request, response) => {
@@ -17,9 +18,9 @@ customersRouter.post('/', async (request, response) => {
     return response.status(400).json({
       error: 'Password is missing'
     })
-  } else if (password.length < 8) {
+  } else if (!validatePassword(password)) {
     return response.status(400).json({
-      error: 'Password should be at least 8 characters long'
+      error: 'Password is not strong enough'
     })
   }
 
@@ -56,21 +57,7 @@ customersRouter.post('/', async (request, response) => {
   response.status(201).json(savedCustomer)
 })
 
-customersRouter.delete( '/:id', middleware.customerExtractor, async (request, response) => {
-
-  const customer = await Customer.findById(request.params.id).exec()
-
-  if (!customer) {
-    return response.status(404).json({ error: 'customer does not exist' })
-  }
-
-  const loggedCustomer = request.customer
-
-  if (loggedCustomer._id.toString() !== customer._id.toString()) {
-    return response
-      .status(401)
-      .json({ error: 'only the user can delete itself' })
-  }
+customersRouter.delete( '/:id', customerExtractor, customerValidator, async (request, response) => {
 
   await config.redisClient.del(request.params.id)
 
@@ -79,22 +66,8 @@ customersRouter.delete( '/:id', middleware.customerExtractor, async (request, re
 
 })
 
-customersRouter.put('/:id',middleware.customerExtractor, async (request, response) => {
+customersRouter.put('/:id', customerExtractor, customerValidator, async (request, response) => {
   const { firstname, lastname, photo, stripeID, latitude, longitude } = request.body
-
-  const customer = await Customer.findById(request.params.id).exec()
-
-  if (!customer) {
-    return response.status(404).json({ error: 'customer does not exist' })
-  }
-
-  const loggedCustomer = request.customer
-
-  if (loggedCustomer._id.toString() !== customer._id.toString()) {
-    return response
-      .status(401)
-      .json({ error: 'only the user can modify itself' })
-  }
 
   const receivedCustomer = {
     firstname: firstname,

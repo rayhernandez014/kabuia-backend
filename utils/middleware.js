@@ -64,9 +64,30 @@ const customerExtractor = async (request, response, next) => {
 
 }
 
+const customerValidator = async (request, response, next) => {
+
+  const customer = await Customer.findById(request.params.id).exec()
+
+  if (!customer) {
+    return response.status(404).json({ error: 'you are not authorized to perform this action' })
+  }
+
+  const loggedCustomer = request.customer
+
+  if (loggedCustomer._id.toString() !== customer._id.toString()) {
+    return response
+      .status(401)
+      .json({ error: 'you are not authorized to perform this action' })
+  }
+
+  next()
+
+}
+
 module.exports = {
   requestLogger,
   unknownEndpoint,
   errorHandler,
-  customerExtractor
+  customerExtractor,
+  customerValidator
 }
