@@ -81,18 +81,7 @@ customersRouter.put('/:id', customerExtractor, customerValidator, async (request
 })
 
 customersRouter.put('/password/:id', customerExtractor, customerValidator, async (request, response) => {
-  const { currentPassword, newPassword, confirmPassword } = request.body
-  const customer = request.customer
-
-  const passwordCorrect = ((customer === null) || !currentPassword)
-    ? false
-    : await comparePasswords(currentPassword, customer.passwordHash)
-
-  if (!passwordCorrect) {
-    return response.status(401).json({
-      error: 'invalid credentials'
-    })
-  }
+  const { newPassword, confirmPassword } = request.body
 
   if (newPassword !== confirmPassword){
     return response.status(400).json({
