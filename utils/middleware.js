@@ -1,5 +1,5 @@
 const logger = require('./logger')
-const Customer = require('../models/customer')
+const User = require('../models/user')
 const jwt = require('jsonwebtoken')
 const config = require('./config')
 const crypto = require('crypto')
@@ -32,7 +32,7 @@ const errorHandler = (error, request, response, next) => {
   next(error)
 }
 
-const customerExtractor = async (request, response, next) => {
+const userExtractor = async (request, response, next) => {
 
   const authorization = request.get('authorization')
   if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
@@ -42,9 +42,9 @@ const customerExtractor = async (request, response, next) => {
 
     const registeredToken = await config.redisClient.get(decodedToken.id)
 
-    const customer = await Customer.findById(decodedToken.id)
+    const user = await User.findById(decodedToken.id)
 
-    if (!customer) {
+    if (!user) {
       return response.status(404).json({ error: 'This account does not exist' })
     }
     if (!registeredToken || !crypto.timingSafeEqual(Buffer.from(registeredToken), Buffer.from(token))) {
@@ -52,7 +52,7 @@ const customerExtractor = async (request, response, next) => {
     }
     /* Doing that last part to avoid timing attacks */
 
-    request.customer = customer
+    request.user = user
 
   }
   else{
@@ -63,17 +63,17 @@ const customerExtractor = async (request, response, next) => {
 
 }
 
-const customerValidator = async (request, response, next) => {
+const userValidator = async (request, response, next) => {
 
-  const customer = await Customer.findById(request.params.id).exec()
+  const user = request.user
 
-  if (!customer) {
+  if (!user) {
     return response.status(404).json({ error: 'you are not authorized to perform this action' })
   }
 
-  const loggedCustomer = request.customer
+  const loggedUser = request.user
 
-  if (loggedCustomer._id.toString() !== customer._id.toString()) {
+  if (loggedUser._id.toString() !== user._id.toString()) {
     return response
       .status(401)
       .json({ error: 'you are not authorized to perform this action' })
@@ -87,6 +87,6 @@ module.exports = {
   requestLogger,
   unknownEndpoint,
   errorHandler,
-  customerExtractor,
-  customerValidator
+  userExtractor,
+  userValidator
 }

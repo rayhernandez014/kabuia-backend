@@ -1,3 +1,4 @@
+/*
 const bcrypt = require('bcrypt')
 const contractorsRouter = require('express').Router()
 const Contractor = require('../models/contractor')
@@ -80,3 +81,4 @@ contractorsRouter.put('/:id', async (request, response) => {
   response.json(updatedContractor)
 })
 module.exports = contractorsRouter
+*/
