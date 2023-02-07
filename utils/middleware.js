@@ -65,10 +65,10 @@ const userExtractor = async (request, response, next) => {
 
 const userValidator = async (request, response, next) => {
 
-  const user = request.user
+  const user = await User.findById(request.params.id).exec()
 
   if (!user) {
-    return response.status(404).json({ error: 'you are not authorized to perform this action' })
+    return response.status(404).json({ error: 'the account in paratemer does not exist' })
   }
 
   const loggedUser = request.user

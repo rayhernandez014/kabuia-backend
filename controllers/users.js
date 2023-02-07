@@ -7,7 +7,7 @@ const { userExtractor, userValidator } = require('../utils/middleware')
 const { validatePassword, hashPassword } = require('../utils/security')
 
 usersRouter.get('/', userExtractor, async (request, response) => {
-  const id = request.customer._id.toString()
+  const id = request.user._id.toString()
   const user = await User.findById( id ).exec()
   response.json(user)
 })
@@ -52,7 +52,7 @@ usersRouter.post('/', async (request, response) => {
     const savedCustomer = await customer.save()
     response.status(201).json(savedCustomer)
   }
-  else{
+  else if (type === 'contractor'){
     const contractor = new Contractor({
       firstname: firstname,
       lastname: lastname,
@@ -72,6 +72,9 @@ usersRouter.post('/', async (request, response) => {
 
     const savedContractor = await contractor.save()
     response.status(201).json(savedContractor)
+  }
+  else{
+    return response.status(400).json({ error: 'Invalid user type' })
   }
 
 })
@@ -105,7 +108,7 @@ usersRouter.put('/:id', userExtractor, userValidator, async (request, response) 
     }).exec()
     response.json(updatedCustomer)
   }
-  else{
+  else if (type === 'contractor'){
     const receivedContractor = {
       firstname: firstname,
       lastname: lastname,
@@ -123,6 +126,9 @@ usersRouter.put('/:id', userExtractor, userValidator, async (request, response) 
       context: 'query'
     }).exec()
     response.json(updatedContractor)
+  }
+  else{
+    return response.status(400).json({ error: 'Invalid user type' })
   }
 
 })
