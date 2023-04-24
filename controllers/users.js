@@ -159,6 +159,9 @@ usersRouter.put('/password/:id', userExtractor, userValidator, async (request, r
     runValidators: true,
     context: 'query'
   }).exec()
+
+  await config.redisClient.del(request.params.id.toString())
+
   response.status(204).end()
 })
 

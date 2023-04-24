@@ -1,12 +1,12 @@
 const forgotPassword = require('express').Router()
-const nodemailer = require('nodemailer')
 const Customer = require('../models/customer')
 const jwt = require('jsonwebtoken')
 const config = require('../utils/config')
+const { sendEmail } = require('../utils/emailManager')
 
 forgotPassword.post('/', async (request, response) => {
 
-  const { email, phone } = request.body
+  const { email, phone, method } = request.body
 
   let customer = null
 
@@ -38,27 +38,17 @@ forgotPassword.post('/', async (request, response) => {
 
   await config.redisClient.set(customer._id.toString(), token)
 
-  const testAccount = await nodemailer.createTestAccount()
-
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.ethereal.email',
-    port: 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: testAccount.user, // generated ethereal user
-      pass: testAccount.pass, // generated ethereal password
-    },
-  })
-
-  const info = await transporter.sendMail({
-    from: '"Fred Foo 👻" <foo@example.com>', // sender address
-    to: email, // list of receivers
-    subject: 'Reset your account', // Subject line
-    text: `https://www.fakeurl.com/${token}`, // plain text body
-  })
-
-  console.log('Message sent: %s', info.messageId)
-  console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info))
+  if(method === 'email'){
+    await sendEmail('kabuia@email.com', email, 'Reset your password', `https://www.fakeurl.com/${customer._id}?token=${token}`)
+  }
+  else if (method === 'sms'){
+    console.log('sms')
+  }
+  else{
+    return response.status(400).json({
+      error: 'Please specify the recovery method'
+    })
+  }
 
   response.status(204).end()
 
