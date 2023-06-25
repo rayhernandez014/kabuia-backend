@@ -81,7 +81,7 @@ usersRouter.post('/', async (request, response) => {
 
 usersRouter.delete( '/:id', userExtractor, userValidator, async (request, response) => {
 
-  await config.redisClient.del(request.params.id)
+  await config.redisClient.del(`jwt_${request.params.id}`)
 
   await User.findByIdAndRemove(request.params.id).exec()
   response.status(204).end()
@@ -160,7 +160,7 @@ usersRouter.put('/password/:id', userExtractor, userValidator, async (request, r
     context: 'query'
   }).exec()
 
-  await config.redisClient.del(request.params.id.toString())
+  await config.redisClient.del(`jwt_${request.params.id.toString()}`)
 
   response.status(204).end()
 })

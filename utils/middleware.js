@@ -40,7 +40,7 @@ const userExtractor = async (request, response, next) => {
     const token = authorization.substring(7)
     const decodedToken = jwt.verify(token, config.SECRET)
 
-    const registeredToken = await config.redisClient.get(decodedToken.id)
+    const registeredToken = await config.redisClient.get(`jwt_${decodedToken.id}`)
 
     const user = await User.findById(decodedToken.id)
 

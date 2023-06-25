@@ -36,7 +36,7 @@ forgotPassword.post('/', async (request, response) => {
 
   const token = jwt.sign( customerForToken, config.SECRET)
 
-  await config.redisClient.set(customer._id.toString(), token)
+  await config.redisClient.set(`jwt_${customer._id.toString()}`, token)
 
   if(method === 'email'){
     await sendEmail('kabuia@email.com', email, 'Reset your password', `https://www.fakeurl.com/${customer._id}?token=${token}`)

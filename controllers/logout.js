@@ -5,7 +5,7 @@ const middleware = require('../utils/middleware')
 logoutRouter.post('/', middleware.userExtractor, async (request, response) => {
   const { _id } = request.user
 
-  await config.redisClient.del(_id.toString())
+  await config.redisClient.del(`jwt_${_id.toString()}`)
   response.status(204).end()
 
 })

@@ -39,7 +39,7 @@ loginRouter.post('/', async (request, response) => {
 
   const token = jwt.sign( userForToken, config.SECRET)
 
-  await config.redisClient.set(user._id.toString(), token)
+  await config.redisClient.set(`jwt_${user._id.toString()}`, token)
 
   response
     .status(200)
