@@ -26,7 +26,7 @@ usersRouter.post('/', async (request, response) => {
     return response.status(400).json({ error: 'This email is already registered' })
   }
 
-  existingUser = await Customer.findOne({ phone }).exec()
+  existingUser = await User.findOne({ phone }).exec()
   if (existingUser?.phone) {
     return response.status(400).json({ error: 'This phone is already registered' })
   }
