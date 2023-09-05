@@ -1,4 +1,8 @@
 const bcrypt = require('bcrypt')
+const config = require('./config')
+const crypto = require('crypto')
+const jwt = require('jsonwebtoken')
+const User = require('../models/user')
 
 const validatePassword = (password) => {
 
@@ -36,5 +40,5 @@ const comparePasswords = async (password, hash) => {
 module.exports = {
   validatePassword,
   hashPassword,
-  comparePasswords
+  comparePasswords,
 }

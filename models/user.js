@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema({
       function() {
         return !this.phone
       },
-      'Email is required if phone number is not specified'
+      'email is required if phone number is not specified'
     ],
     validate: {
       validator: function (v) {
@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
       function() {
         return !this.email
       },
-      'Phone number is required if email is not specified'
+      'phone number is required if email is not specified'
     ],
     validate: {
       validator: function (v) {
@@ -40,6 +40,24 @@ const userSchema = new mongoose.Schema({
       },
       message: props => `${props.value} is not a valid phone number`
     }
+  },
+  emailVerified: {
+    type: Boolean,
+    required: [
+      function() {
+        return !!this.email
+      },
+      'email verification status is required if an email is provided'
+    ],
+  },
+  phoneVerified: {
+    type: Boolean,
+    required: [
+      function() {
+        return !!this.phone
+      },
+      'phone verification status is required if an phone is provided'
+    ],
   },
   passwordHash: {
     type: String,

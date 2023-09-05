@@ -1,10 +1,9 @@
-const forgotPassword = require('express').Router()
+const verifyUser = require('express').Router()
 const User = require('../models/user')
 const jwt = require('jsonwebtoken')
 const config = require('../utils/config')
-const { sendEmail } = require('../utils/emailManager')
 
-forgotPassword.post('/', async (request, response) => {
+verifyUser.post('/', async (request, response) => {
 
   const { email, phone, method } = request.body
 
@@ -54,4 +53,4 @@ forgotPassword.post('/', async (request, response) => {
 
 })
 
-module.exports = forgotPassword
+module.exports = verifyUser

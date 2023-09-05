@@ -45,10 +45,10 @@ const userExtractor = async (request, response, next) => {
     const user = await User.findById(decodedToken.id)
 
     if (!user) {
-      return response.status(404).json({ error: 'This account does not exist' })
+      return response.status(404).json({ error: 'this account does not exist' })
     }
     if (!registeredToken || !crypto.timingSafeEqual(Buffer.from(registeredToken), Buffer.from(token))) {
-      return response.status(401).json({ error: 'This session has expired' })
+      return response.status(401).json({ error: 'this session has expired' })
     }
     /* Doing that last part to avoid timing attacks */
 
@@ -56,7 +56,7 @@ const userExtractor = async (request, response, next) => {
 
   }
   else{
-    return response.status(404).json({ error: 'Token missing or invalid' })
+    return response.status(404).json({ error: 'token missing or invalid' })
   }
 
   next()

@@ -5,6 +5,8 @@ const User = require('../models/user')
 const config = require('../utils/config')
 const { userExtractor, userValidator } = require('../utils/middleware')
 const { validatePassword, hashPassword } = require('../utils/security')
+const crypto = require('crypto')
+const jwt = require('jsonwebtoken')
 
 usersRouter.get('/', userExtractor, async (request, response) => {
   const id = request.user._id.toString()
@@ -17,18 +19,18 @@ usersRouter.post('/', async (request, response) => {
 
   if (!validatePassword(password)) {
     return response.status(400).json({
-      error: 'Password is not strong enough'
+      error: 'password is not strong enough'
     })
   }
 
   let existingUser = await User.findOne({ email }).exec()
   if (existingUser?.email) {
-    return response.status(400).json({ error: 'This email is already registered' })
+    return response.status(400).json({ error: 'this email is already registered' })
   }
 
   existingUser = await User.findOne({ phone }).exec()
   if (existingUser?.phone) {
-    return response.status(400).json({ error: 'This phone is already registered' })
+    return response.status(400).json({ error: 'this phone is already registered' })
   }
 
   const passwordHash = await hashPassword(password)
@@ -39,6 +41,8 @@ usersRouter.post('/', async (request, response) => {
       lastname: lastname,
       email: email,
       phone: phone,
+      emailVerified: false,
+      phoneVerified: false,
       passwordHash: passwordHash,
       photo: photo ?? '',
       reviews: [],
@@ -58,6 +62,8 @@ usersRouter.post('/', async (request, response) => {
       lastname: lastname,
       email: email,
       phone: phone,
+      emailVerified: false,
+      phoneVerified: false,
       passwordHash: passwordHash,
       photo: photo ?? '',
       reviews: [],
@@ -144,7 +150,7 @@ usersRouter.put('/password/:id', userExtractor, userValidator, async (request, r
 
   if (!validatePassword(newPassword)) {
     return response.status(400).json({
-      error: 'Password is not strong enough'
+      error: 'password is not strong enough'
     })
   }
 
@@ -163,6 +169,62 @@ usersRouter.put('/password/:id', userExtractor, userValidator, async (request, r
   await config.redisClient.del(`jwt_${request.params.id.toString()}`)
 
   response.status(204).end()
+})
+
+usersRouter.put('/verify/:method/:token/', async (request, response) => {
+
+  const { token, method } = request.params
+
+  let precode = null
+
+  let verifiedUser = null
+
+  if(method === 'email'){
+    precode = 'e'
+    verifiedUser = {
+      emailVerified: true
+    }
+  }
+  else if(method === 'phone'){
+    precode = 'p'
+    verifiedUser = {
+      phoneVerified: true
+    }
+  }
+  else{
+    return response.status(400).json({ error: 'invalid verification method' })
+  }
+
+  if(token){
+    const decodedToken = jwt.verify(token, config.SECRET)
+
+    const registeredToken = await config.redisClient.get(`${precode}_${decodedToken.id}`)
+
+    const user = await User.findById(decodedToken.id)
+
+    if (!user) {
+      return response.status(404).json({ error: 'this account does not exist' })
+    }
+    if (!registeredToken || !crypto.timingSafeEqual(Buffer.from(registeredToken), Buffer.from(token))) {
+      return response.status(401).json({ error: 'the token has expired' })
+    }
+    /* Doing that last part to avoid timing attacks */
+
+    await User.findByIdAndUpdate(user.id, verifiedUser, {
+      new: true,
+      runValidators: true,
+      context: 'query'
+    }).exec()
+
+    await config.redisClient.del(`${precode}_${decodedToken.id}`)
+
+    response.status(204).end()
+
+  }
+  else{
+    return response.status(404).json({ error: 'token missing or invalid' })
+  }
+
 })
 
 module.exports = usersRouter

@@ -17,7 +17,7 @@ loginRouter.post('/', async (request, response) => {
   }
   else{
     return response.status(401).json({
-      error: 'Please provide an email or phone'
+      error: 'please provide an email or phone'
     })
   }
 
@@ -28,6 +28,18 @@ loginRouter.post('/', async (request, response) => {
   if (!(user && passwordCorrect)) {
     return response.status(401).json({
       error: 'invalid credentials'
+    })
+  }
+
+  if(user.email && !user.emailVerified){
+    return response.status(401).json({
+      error: 'unverified email'
+    })
+  }
+
+  if(user.phone && !user.phoneVerified){
+    return response.status(401).json({
+      error: 'unverified phone'
     })
   }
 
