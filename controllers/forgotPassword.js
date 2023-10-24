@@ -39,7 +39,7 @@ forgotPassword.post('/', async (request, response) => {
   await config.redisClient.set(`jwt_${user._id.toString()}`, token)
 
   if(method === 'email'){
-    await sendEmail('kabuia@email.com', email, 'Reset your password', `https://www.fakeurl.com/${user._id}?token=${token}`)
+    await sendEmail('kabuia@email.com', email, 'Reset your password', `https://www.fakeurl.com/password/?id=${user._id.toString()}&token=${token}`)
   }
   else if (method === 'sms'){
     console.log('sms')

@@ -68,7 +68,7 @@ const userValidator = async (request, response, next) => {
   const user = await User.findById(request.params.id).exec()
 
   if (!user) {
-    return response.status(404).json({ error: 'the account in paratemer does not exist' })
+    return response.status(404).json({ error: 'the account in parameter does not exist' })
   }
 
   const loggedUser = request.user

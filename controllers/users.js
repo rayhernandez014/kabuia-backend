@@ -171,21 +171,21 @@ usersRouter.put('/password/:id', userExtractor, userValidator, async (request, r
   response.status(204).end()
 })
 
-usersRouter.put('/verify/:method/:token/', async (request, response) => {
+usersRouter.put('/verify/:method/:id/:token', async (request, response) => {
 
-  const { token, method } = request.params
+  const { method, token } = request.params
 
   let precode = null
 
   let verifiedUser = null
 
-  if(method === 'email'){
+  if(method === 'e'){
     precode = 'e'
     verifiedUser = {
       emailVerified: true
     }
   }
-  else if(method === 'phone'){
+  else if(method === 'p'){
     precode = 'p'
     verifiedUser = {
       phoneVerified: true
