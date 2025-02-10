@@ -73,14 +73,11 @@ const userSchema = new mongoose.Schema({
   stripeID: {
     type: String
   },
-  latitude: {
-    type: Number,
+  locations: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Coordinates',
     required: true
-  },
-  longitude: {
-    type: Number,
-    required: true
-  }
+  }],
 })
 
 userSchema.set('toJSON', {

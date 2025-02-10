@@ -1,16 +1,36 @@
 const mongoose = require('mongoose')
 
 const contractSchema = new mongoose.Schema({
-  serviceRequest: {
+  buyer: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ServiceRequest',
+    ref: 'Buyer',
     required: true
   },
-  serviceOffer: {
+  seller: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ServiceOffer',
+    ref: 'Seller',
     required: true
   },
+  deliverer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Deliverer',
+    required: true
+  },
+  deliveryRequest: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'DeliveryRequest',
+    required: true
+  },
+  deliveryOffer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'DeliveryOffer',
+    required: true
+  },
+  Products: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true
+  }],
   reviews: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Review'
@@ -18,9 +38,6 @@ const contractSchema = new mongoose.Schema({
   status: {
     type: Boolean,
     required: true
-  },
-  album: {
-    type: [String]
   }
 })
 

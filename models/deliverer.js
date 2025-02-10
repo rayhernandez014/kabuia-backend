@@ -3,13 +3,11 @@ const User = require('./user')
 
 const options = { discriminatorKey: 'type' }
 
-const Customer = User.discriminator('Customer', new mongoose.Schema({
-
-  serviceRequests: [{
+const Deliverer = User.discriminator('Deliverer', new mongoose.Schema({
+  deliveryOffers: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ServiceRequest'
+    ref: 'DeliveryOffer'
   }],
-
 }, options))
 
-module.exports = Customer
+module.exports = Deliverer

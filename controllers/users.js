@@ -1,12 +1,13 @@
 const usersRouter = require('express').Router()
-const Customer = require('../models/customer')
-const Contractor = require('../models/contractor')
 const User = require('../models/user')
 const config = require('../utils/config')
 const { userExtractor, userValidator } = require('../utils/middleware')
 const { validatePassword, hashPassword } = require('../utils/security')
 const crypto = require('crypto')
 const jwt = require('jsonwebtoken')
+const Buyer = require('../models/buyer')
+const Seller = require('../models/seller')
+const Deliverer = require('../models/deliverer')
 
 usersRouter.get('/', userExtractor, async (request, response) => {
   const id = request.user._id.toString()
@@ -15,7 +16,7 @@ usersRouter.get('/', userExtractor, async (request, response) => {
 })
 
 usersRouter.post('/', async (request, response) => {
-  const { firstname, lastname, email, phone, password, photo, stripeID, latitude, longitude, portfolio, skills, type } = request.body
+  const { firstname, lastname, email, phone, password, photo, stripeID, locations, type } = request.body
 
   if (!validatePassword(password)) {
     return response.status(400).json({
@@ -35,8 +36,8 @@ usersRouter.post('/', async (request, response) => {
 
   const passwordHash = await hashPassword(password)
 
-  if(type === 'customer'){
-    const customer = new Customer({
+  if(type === 'buyer'){
+    const buyer = new Buyer({
       firstname: firstname,
       lastname: lastname,
       email: email,
@@ -46,18 +47,16 @@ usersRouter.post('/', async (request, response) => {
       passwordHash: passwordHash,
       photo: photo ?? '',
       reviews: [],
-      cancelationRatio: 0,
       stripeID: stripeID ?? '',
-      longitude: longitude,
-      latitude: latitude,
-      serviceRequests: [],
+      locations: locations,
+      shoppingCart: []
     })
 
-    const savedCustomer = await customer.save()
-    response.status(201).json(savedCustomer)
+    const savedBuyer = await buyer.save()
+    response.status(201).json(savedBuyer)
   }
-  else if (type === 'contractor'){
-    const contractor = new Contractor({
+  else if (type === 'seller'){
+    const seller = new Seller({
       firstname: firstname,
       lastname: lastname,
       email: email,
@@ -67,17 +66,33 @@ usersRouter.post('/', async (request, response) => {
       passwordHash: passwordHash,
       photo: photo ?? '',
       reviews: [],
-      cancelationRatio: 0,
       stripeID: stripeID ?? '',
-      longitude: longitude,
-      latitude: latitude,
-      portfolio: portfolio ?? '',
-      skills: skills,
-      serviceOffers: [],
+      locations: locations,
+      deliveryRequests: [],
+      catalog: []
     })
 
-    const savedContractor = await contractor.save()
-    response.status(201).json(savedContractor)
+    const savedSeller = await seller.save()
+    response.status(201).json(savedSeller)
+  }
+  else if (type === 'deliverer'){
+    const deliverer = new Deliverer({
+      firstname: firstname,
+      lastname: lastname,
+      email: email,
+      phone: phone,
+      emailVerified: false,
+      phoneVerified: false,
+      passwordHash: passwordHash,
+      photo: photo ?? '',
+      reviews: [],
+      stripeID: stripeID ?? '',
+      locations: locations,
+      deliveryRequests: [],
+    })
+
+    const savedDeliverer = await deliverer.save()
+    response.status(201).json(savedDeliverer)
   }
   else{
     return response.status(400).json({ error: 'Invalid user type' })
