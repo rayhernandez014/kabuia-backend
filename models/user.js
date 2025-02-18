@@ -1,5 +1,7 @@
 const mongoose = require('mongoose')
 
+const options = { discriminatorKey: 'type' }
+
 const userSchema = new mongoose.Schema({
   firstname: {
     type: String,
@@ -78,7 +80,7 @@ const userSchema = new mongoose.Schema({
     ref: 'Coordinates',
     required: true
   }],
-})
+}, options)
 
 userSchema.set('toJSON', {
   transform: (document, returnedObject) => {

@@ -52,7 +52,7 @@ usersRouter.post('/', async (request, response) => {
       shoppingCart: []
     })
 
-    const savedBuyer = await buyer.save()
+    const savedBuyer = await buyer.save().exec()
     response.status(201).json(savedBuyer)
   }
   else if (type === 'seller'){
@@ -72,7 +72,7 @@ usersRouter.post('/', async (request, response) => {
       catalog: []
     })
 
-    const savedSeller = await seller.save()
+    const savedSeller = await seller.save().exec()
     response.status(201).json(savedSeller)
   }
   else if (type === 'deliverer'){
@@ -91,7 +91,7 @@ usersRouter.post('/', async (request, response) => {
       deliveryRequests: [],
     })
 
-    const savedDeliverer = await deliverer.save()
+    const savedDeliverer = await deliverer.save().exec()
     response.status(201).json(savedDeliverer)
   }
   else{
@@ -110,43 +110,59 @@ usersRouter.delete( '/:id', userExtractor, userValidator, async (request, respon
 })
 
 usersRouter.put('/:id', userExtractor, userValidator, async (request, response) => {
-  const { firstname, lastname, photo, stripeID, latitude, longitude, portfolio, skills, type } = request.body
+  const { firstname, lastname, photo, stripeID, locations, shoppingCart } = request.body
 
-  if(type === 'customer'){
-    const receivedCustomer = {
+  if(request.user.type === 'buyer'){
+    const receivedBuyer = {
       firstname: firstname,
       lastname: lastname,
       photo: photo,
       stripeID: stripeID,
-      latitude: latitude,
-      longitude: longitude
+      locations: locations,
+      shoppingCart: shoppingCart,
     }
 
-    const updatedCustomer = await Customer.findByIdAndUpdate(request.params.id, receivedCustomer, {
+    const updatedBuyer = await Buyer.findByIdAndUpdate(request.params.id, receivedBuyer, {
       new: true,
       runValidators: true,
       context: 'query'
     }).exec()
-    response.json(updatedCustomer)
+
+    response.json(updatedBuyer)
   }
-  else if (type === 'contractor'){
-    const receivedContractor = {
+  else if (request.user.type === 'seller'){
+    const receivedSeller = {
       firstname: firstname,
       lastname: lastname,
       photo: photo,
       stripeID: stripeID,
-      latitude: latitude,
-      longitude: longitude,
-      portfolio: portfolio,
-      skills: skills
+      locations: locations
     }
 
-    const updatedContractor = await Contractor.findByIdAndUpdate(request.params.id, receivedContractor, {
+    const updatedSeller = await Seller.findByIdAndUpdate(request.params.id, receivedSeller, {
       new: true,
       runValidators: true,
       context: 'query'
     }).exec()
-    response.json(updatedContractor)
+
+    response.json(updatedSeller)
+  }
+  else if (request.user.type === 'deliverer'){
+    const receivedDeliverer = {
+      firstname: firstname,
+      lastname: lastname,
+      photo: photo,
+      stripeID: stripeID,
+      locations: locations
+    }
+
+    const updatedDeliverer = await Deliverer.findByIdAndUpdate(request.params.id, receivedDeliverer, {
+      new: true,
+      runValidators: true,
+      context: 'query'
+    }).exec()
+
+    response.json(updatedDeliverer)
   }
   else{
     return response.status(400).json({ error: 'Invalid user type' })
@@ -215,7 +231,7 @@ usersRouter.put('/verify/:method/:id/:token', async (request, response) => {
 
     const registeredToken = await config.redisClient.get(`${precode}_${decodedToken.id}`)
 
-    const user = await User.findById(decodedToken.id)
+    const user = await User.findById(decodedToken.id).exec()
 
     if (!user) {
       return response.status(404).json({ error: 'this account does not exist' })

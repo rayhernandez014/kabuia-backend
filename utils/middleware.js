@@ -3,6 +3,7 @@ const User = require('../models/user')
 const jwt = require('jsonwebtoken')
 const config = require('./config')
 const crypto = require('crypto')
+const Product = require('../models/product')
 
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
@@ -83,10 +84,39 @@ const userValidator = async (request, response, next) => {
 
 }
 
+const productValidator = async (request, response, next) => {
+
+  const product = Product.findById(request.params.id).exec()
+
+  if(!product){
+    return response.status(404).json({
+        error: 'product does not exist'
+    })
+  }
+
+  if (request.user.type !== 'seller') {
+    return response.status(401).json({
+      error: 'user must be a seller'
+    })
+  }
+
+  const loggedSeller = request.user
+
+  if(product.seller._id.toString() !== loggedSeller._id.toString()){
+    return response.status(401).json({
+        error: 'you are not authorized to perform this action'
+    })
+  }
+
+  next()
+
+}
+
 module.exports = {
   requestLogger,
   unknownEndpoint,
   errorHandler,
   userExtractor,
-  userValidator
+  userValidator,
+  productValidator
 }
