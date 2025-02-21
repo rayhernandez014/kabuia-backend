@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken')
 const config = require('./config')
 const crypto = require('crypto')
 const Product = require('../models/product')
+const DeliveryRequest = require('../models/deliveryRequest')
 
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
@@ -112,11 +113,46 @@ const productValidator = async (request, response, next) => {
 
 }
 
+const deliveryRequestValidator = async (request, response, next) => {
+
+  const deliveryRequest = DeliveryRequest.findById(request.params.id).exec()
+
+  if(!deliveryRequest){
+    return response.status(404).json({
+        error: 'delivery request does not exist'
+    })
+  }
+
+  if (request.user.type !== 'seller') {
+    return response.status(401).json({
+      error: 'user must be a seller'
+    })
+  }
+
+  const loggedSeller = request.user
+
+  if(deliveryRequest.seller._id.toString() !== loggedSeller._id.toString()){
+    return response.status(401).json({
+        error: 'you are not authorized to perform this action'
+    })
+  }
+
+  if(deliveryRequest.contract){
+    return response.status(401).json({
+        error: 'the delivery request is bound to a contract'
+    })
+  }
+
+  next()
+
+}
+
 module.exports = {
   requestLogger,
   unknownEndpoint,
   errorHandler,
   userExtractor,
   userValidator,
-  productValidator
+  productValidator,
+  deliveryRequestValidator
 }

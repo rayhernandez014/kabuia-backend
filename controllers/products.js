@@ -1,11 +1,8 @@
 const productsRouter = require('express').Router()
 const Product = require('../models/product')
-const config = require('../utils/config')
-const { userExtractor, userValidator, productValidator } = require('../utils/middleware')
-const { validatePassword, hashPassword } = require('../utils/security')
+const { userExtractor, productValidator } = require('../utils/middleware')
 const Buyer = require('../models/buyer')
 const Seller = require('../models/seller')
-const Deliverer = require('../models/deliverer')
 
 productsRouter.get('/', async (request, response) => {
   const products = await Product.find({}).exec()
@@ -30,7 +27,7 @@ productsRouter.post('/', userExtractor, async (request, response) => {
     quantity: quantity, 
     description: description, 
     photo: photo,
-    seller: seller._id.toString()
+    seller: seller._id
   })
   
   const savedProduct = await product.save().exec()  
@@ -39,7 +36,7 @@ productsRouter.post('/', userExtractor, async (request, response) => {
     catalog: [...seller.catalog, savedProduct._id]
   }
   
-  const updatedSeller = await Seller.findByIdAndUpdate(seller._id.toString(), newSellerData, {
+  const updatedSeller = await Seller.findByIdAndUpdate(seller._id, newSellerData, {
     new: true,
     runValidators: true,
     context: 'query'
@@ -57,7 +54,7 @@ productsRouter.delete( '/:id', userExtractor, productValidator, async (request, 
     catalog: [...request.user.catalog].filter((p) => p.toString() !== request.params.id)
   }
 
-  await Seller.findByIdAndUpdate(request.user._id.toString(), newSellerData, {
+  await Seller.findByIdAndUpdate(request.user._id, newSellerData, {
     new: true,
     runValidators: true,
     context: 'query'
