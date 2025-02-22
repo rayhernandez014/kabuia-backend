@@ -1,7 +1,6 @@
 const productsRouter = require('express').Router()
 const Product = require('../models/product')
 const { userExtractor, productValidator } = require('../utils/middleware')
-const Buyer = require('../models/buyer')
 const Seller = require('../models/seller')
 
 productsRouter.get('/', async (request, response) => {
@@ -76,7 +75,7 @@ productsRouter.put('/:id', userExtractor, productValidator, async (request, resp
     photo: photo,
   }
 
-  const updatedProduct = await Buyer.findByIdAndUpdate(request.params.id, receivedProduct , {
+  const updatedProduct = await Product.findByIdAndUpdate(request.params.id, receivedProduct , {
     new: true,
     runValidators: true,
     context: 'query'

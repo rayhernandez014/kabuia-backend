@@ -1,16 +1,14 @@
 const deliveryRequestsRouter = require('express').Router()
-const DeliveryRequest = require('../models/product')
-const { userExtractor, productValidator, deliveryRequestValidator } = require('../utils/middleware')
-const Buyer = require('../models/buyer')
+const DeliveryRequest = require('../models/deliveryRequest')
+const { userExtractor, deliveryRequestValidator } = require('../utils/middleware')
 const Seller = require('../models/seller')
-const Deliverer = require('../models/deliverer')
 
 deliveryRequestsRouter.get('/:date/:origin/:destination', async (request, response) => {
 
   const {date, origin, destination} = request.params
 
-  const products = await DeliveryRequest.find({date: date, origin: origin, destination: destination}).exec()
-  response.json(products)
+  const deliveryRequests = await DeliveryRequest.find({date: date, origin: origin, destination: destination}).exec()
+  response.json(deliveryRequests)
 })
 
 deliveryRequestsRouter.post('/', userExtractor, async (request, response) => {
@@ -78,7 +76,7 @@ deliveryRequestsRouter.put('/:id', userExtractor, deliveryRequestValidator, asyn
     date: date,
   }
 
-  const updatedDeliveryRequest = await Buyer.findByIdAndUpdate(request.params.id, receivedDeliveryRequest , {
+  const updatedDeliveryRequest = await DeliveryRequest.findByIdAndUpdate(request.params.id, receivedDeliveryRequest , {
     new: true,
     runValidators: true,
     context: 'query'

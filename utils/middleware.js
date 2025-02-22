@@ -5,6 +5,7 @@ const config = require('./config')
 const crypto = require('crypto')
 const Product = require('../models/product')
 const DeliveryRequest = require('../models/deliveryRequest')
+const DeliveryOffer = require('../models/deliveryOffer')
 
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
@@ -103,7 +104,7 @@ const productValidator = async (request, response, next) => {
 
   const loggedSeller = request.user
 
-  if(product.seller._id.toString() !== loggedSeller._id.toString()){
+  if(product.seller.toString() !== loggedSeller._id.toString()){
     return response.status(401).json({
         error: 'you are not authorized to perform this action'
     })
@@ -131,7 +132,7 @@ const deliveryRequestValidator = async (request, response, next) => {
 
   const loggedSeller = request.user
 
-  if(deliveryRequest.seller._id.toString() !== loggedSeller._id.toString()){
+  if(deliveryRequest.seller.toString() !== loggedSeller._id.toString()){
     return response.status(401).json({
         error: 'you are not authorized to perform this action'
     })
@@ -147,6 +148,40 @@ const deliveryRequestValidator = async (request, response, next) => {
 
 }
 
+const deliveryOfferValidator = async (request, response, next) => {
+
+  const deliveryOffer = DeliveryOffer.findById(request.params.id).exec()
+
+  if(!deliveryOffer){
+    return response.status(404).json({
+        error: 'delivery request does not exist'
+    })
+  }
+
+  if (request.user.type !== 'deliverer') {
+    return response.status(401).json({
+      error: 'user must be a deliverer'
+    })
+  }
+
+  const loggedDeliverer = request.user
+
+  if(deliveryOffer.deliverer.toString() !== loggedDeliverer._id.toString()){
+    return response.status(401).json({
+        error: 'you are not authorized to perform this action'
+    })
+  }
+
+  if(deliveryOffer.contract){
+    return response.status(401).json({
+        error: 'the delivery offer is bound to a contract'
+    })
+  }
+
+  next()
+
+}
+
 module.exports = {
   requestLogger,
   unknownEndpoint,
@@ -154,5 +189,6 @@ module.exports = {
   userExtractor,
   userValidator,
   productValidator,
-  deliveryRequestValidator
+  deliveryRequestValidator,
+  deliveryOfferValidator
 }
