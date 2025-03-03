@@ -1,5 +1,7 @@
 const mongoose = require('mongoose')
 
+const options = { discriminatorKey: 'type' }
+
 const contractSchema = new mongoose.Schema({
   buyer: {
     type: mongoose.Schema.Types.ObjectId,
@@ -11,21 +13,6 @@ const contractSchema = new mongoose.Schema({
     ref: 'Seller',
     required: true
   },
-  deliverer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Deliverer',
-    required: true
-  },
-  deliveryRequest: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'DeliveryRequest',
-    required: true
-  },
-  deliveryOffer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'DeliveryOffer',
-    required: true
-  },
   Products: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Product',
@@ -35,11 +22,15 @@ const contractSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Review'
   }],
-  status: {
-    type: Boolean,
+  statusHistory: [{
+    type: String,
     required: true
-  }
-})
+  }],
+  statusTimestamps: [{
+    type: Date,
+    required: true
+  }]
+}, options)
 
 contractSchema.set('toJSON', {
   transform: (document, returnedObject) => {
