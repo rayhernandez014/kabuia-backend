@@ -6,6 +6,7 @@ const crypto = require('crypto')
 const Product = require('../models/product')
 const DeliveryRequest = require('../models/deliveryRequest')
 const DeliveryOffer = require('../models/deliveryOffer')
+const Contract = require('../models/contract')
 
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
@@ -20,6 +21,13 @@ const unknownEndpoint = (request, response) => {
 }
 
 const errorHandler = (error, request, response, next) => {
+
+  if (req.session.mongoSession) {
+    req.session.mongoSession.abortTransaction().catch(err => console.error('Transaction abort failed:', err));
+    req.session.mongoSession.endSession().catch(err => console.error('Session close failed:', err));
+    req.session.mongoSession = null;
+  }
+
   if (error.name === 'CastError') {
     return response.status(400).json({ error: 'malformatted id' })
   }
@@ -77,9 +85,7 @@ const userValidator = async (request, response, next) => {
   const loggedUser = request.user
 
   if (loggedUser._id.toString() !== user._id.toString()) {
-    return response
-      .status(401)
-      .json({ error: 'you are not authorized to perform this action' })
+    return response.status(403).json({ error: 'you are not authorized to perform this action' })
   }
 
   next()
@@ -88,7 +94,7 @@ const userValidator = async (request, response, next) => {
 
 const productValidator = async (request, response, next) => {
 
-  const product = Product.findById(request.params.id).exec()
+  const product = await Product.findById(request.params.id).exec()
 
   if(!product){
     return response.status(404).json({
@@ -97,7 +103,7 @@ const productValidator = async (request, response, next) => {
   }
 
   if (request.user.type !== 'seller') {
-    return response.status(401).json({
+    return response.status(403).json({
       error: 'user must be a seller'
     })
   }
@@ -105,7 +111,7 @@ const productValidator = async (request, response, next) => {
   const loggedSeller = request.user
 
   if(product.seller.toString() !== loggedSeller._id.toString()){
-    return response.status(401).json({
+    return response.status(403).json({
         error: 'you are not authorized to perform this action'
     })
   }
@@ -116,7 +122,7 @@ const productValidator = async (request, response, next) => {
 
 const deliveryRequestValidator = async (request, response, next) => {
 
-  const deliveryRequest = DeliveryRequest.findById(request.params.id).exec()
+  const deliveryRequest = await DeliveryRequest.findById(request.params.id).exec()
 
   if(!deliveryRequest){
     return response.status(404).json({
@@ -125,22 +131,22 @@ const deliveryRequestValidator = async (request, response, next) => {
   }
 
   if (request.user.type !== 'seller') {
-    return response.status(401).json({
+    return response.status(403).json({
       error: 'user must be a seller'
+    })
+  }
+
+  if(deliveryRequest.status === 'offer_selected'){
+    return response.status(404).json({
+        error: 'this action cannot be performed'
     })
   }
 
   const loggedSeller = request.user
 
   if(deliveryRequest.seller.toString() !== loggedSeller._id.toString()){
-    return response.status(401).json({
-        error: 'you are not authorized to perform this action'
-    })
-  }
-
-  if(deliveryRequest.contract){
-    return response.status(401).json({
-        error: 'the delivery request is bound to a contract'
+    return response.status(403).json({
+      error: 'you are not authorized to perform this action'
     })
   }
 
@@ -150,7 +156,7 @@ const deliveryRequestValidator = async (request, response, next) => {
 
 const deliveryOfferValidator = async (request, response, next) => {
 
-  const deliveryOffer = DeliveryOffer.findById(request.params.id).exec()
+  const deliveryOffer = await DeliveryOffer.findById(request.params.id).exec()
 
   if(!deliveryOffer){
     return response.status(404).json({
@@ -159,22 +165,46 @@ const deliveryOfferValidator = async (request, response, next) => {
   }
 
   if (request.user.type !== 'deliverer') {
-    return response.status(401).json({
+    return response.status(403).json({
       error: 'user must be a deliverer'
+    })
+  }
+
+  if(deliveryOffer.status !== 'selected'){
+    return response.status(404).json({
+        error: 'this action cannot be performed'
     })
   }
 
   const loggedDeliverer = request.user
 
   if(deliveryOffer.deliverer.toString() !== loggedDeliverer._id.toString()){
-    return response.status(401).json({
+    return response.status(403).json({
         error: 'you are not authorized to perform this action'
     })
   }
 
-  if(deliveryOffer.contract){
-    return response.status(401).json({
-        error: 'the delivery offer is bound to a contract'
+  next()
+
+}
+
+const contractValidator = async (request, response, next) => {
+
+  const contract = await Contract.findById(request.params.id).exec()
+
+  if(!contract){
+    return response.status(404).json({
+        error: 'contract does not exist'
+    })
+  }
+
+  request.contract = contract;
+
+  const loggedUser = request.user
+
+  if(!loggedUser._id || ![contract.seller.toString(), contract.buyer.toString(), contract.deliverer?.toString()].includes(loggedUser._id.toString())){
+    return response.status(403).json({
+        error: 'you are not authorized to perform this action'
     })
   }
 
@@ -190,5 +220,6 @@ module.exports = {
   userValidator,
   productValidator,
   deliveryRequestValidator,
-  deliveryOfferValidator
+  deliveryOfferValidator,
+  contractValidator
 }

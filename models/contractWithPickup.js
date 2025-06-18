@@ -7,10 +7,6 @@ const ContractWithPickup = Contract.discriminator('ContractWithPickup', new mong
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Coordinates',
     required: true
-  }, 
-  pickupDate: {
-    type: Date,
-    required: true
   },
 }, options))
 

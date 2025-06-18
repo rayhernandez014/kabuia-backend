@@ -13,23 +13,45 @@ const contractSchema = new mongoose.Schema({
     ref: 'Seller',
     required: true
   },
-  Products: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
-    required: true
-  }],
+  order: {
+    items: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true
+    }],
+    quantities: {
+      type: [Number],
+      required: true
+    },
+    total: {
+      type: [Number],
+      required: true
+    }
+  },
   reviews: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Review'
   }],
-  statusHistory: [{
-    type: String,
+  statusHistory: {
+    type: [String],
+    required: true,
+    validate: {
+      validator: function (v) {
+        const standard = new Set(['placed', 'preparing', 'ready', 'delivering', 'delivered', 'picked_up', 'canceled'])
+        const receivedSet = new Set (v)
+        return receivedSet.isSubsetOf(standard)
+      },
+      message: props => 'last contract status is invalid'
+    } 
+  },
+  statusTimestamps: {
+    type: [Date],
     required: true
-  }],
-  statusTimestamps: [{
+  },
+  expectedReadyDate: {
     type: Date,
     required: true
-  }]
+  },
 }, options)
 
 contractSchema.set('toJSON', {

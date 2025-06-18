@@ -12,7 +12,7 @@ productsRouter.post('/', userExtractor, async (request, response) => {
   const { name, price, unit, quantity, description, photo } = request.body
 
   if (request.user.type !== 'seller') {
-    return response.status(401).json({
+    return response.status(403).json({
       error: 'user must be a seller'
     })
   }

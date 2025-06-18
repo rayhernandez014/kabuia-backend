@@ -6,16 +6,36 @@ const ContractWithDelivery = Contract.discriminator('ContractWithDelivery', new 
   deliverer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Deliverer',
-    required: true
+    required: [
+      function() {
+        return this.statusHistory[3] === 'delivering'
+      },
+      'deliverer is required before delivering the order'
+    ],
   },
   deliveryRequest: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'DeliveryRequest',
-    required: true
+    required: [
+      function() {
+        return this.statusHistory[3] === 'delivering'
+      },
+      'delivery request is required before delivering the order'
+    ],
   },
   deliveryOffer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'DeliveryOffer',
+    required: [
+      function() {
+        return this.statusHistory[3] === 'delivering'
+      },
+      'delivery offer is required before delivering the order'
+    ],
+  },
+  deliveryLocation: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Coordinates',
     required: true
   },
 }, options))

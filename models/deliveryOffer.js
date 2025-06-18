@@ -15,10 +15,11 @@ const deliveryOfferSchema = new mongoose.Schema({
     ref: 'DeliveryRequest',
     required: true
   },
-  contract: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Contract'
-  },
+  status: {
+    type: String,
+    enum: ['pending', 'selected', 'accepted', 'rejected', 'declined'],
+    default: 'pending'
+  }
 })
 
 deliveryOfferSchema.set('toJSON', {

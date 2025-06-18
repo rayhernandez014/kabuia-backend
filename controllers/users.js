@@ -16,7 +16,7 @@ usersRouter.get('/', userExtractor, async (request, response) => {
 })
 
 usersRouter.post('/', async (request, response) => {
-  const { firstname, lastname, email, phone, password, photo, stripeID, locations, type } = request.body
+  const { firstname, lastname, email, phone, password, photo, stripeID, locations, type, temp_shoppingCart } = request.body
 
   if (!validatePassword(password)) {
     return response.status(400).json({
@@ -37,6 +37,12 @@ usersRouter.post('/', async (request, response) => {
   const passwordHash = await hashPassword(password)
 
   if(type === 'buyer'){
+
+    const shoppingCart = {
+      items: temp_shoppingCart ? temp_shoppingCart.items : [],
+      quantities: temp_shoppingCart ? temp_shoppingCart.quantities : []
+    }
+        
     const buyer = new Buyer({
       firstname: firstname,
       lastname: lastname,
@@ -49,7 +55,7 @@ usersRouter.post('/', async (request, response) => {
       reviews: [],
       stripeID: stripeID ?? '',
       locations: locations,
-      shoppingCart: []
+      shoppingCart: shoppingCart
     })
 
     const savedBuyer = await buyer.save().exec()
@@ -119,7 +125,7 @@ usersRouter.put('/:id', userExtractor, userValidator, async (request, response) 
       photo: photo,
       stripeID: stripeID,
       locations: locations,
-      shoppingCart: shoppingCart,
+      shoppingCart: shoppingCart
     }
 
     const updatedBuyer = await Buyer.findByIdAndUpdate(request.params.id, receivedBuyer, {

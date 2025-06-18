@@ -30,11 +30,22 @@ const deliveryRequestSchema = new mongoose.Schema({
   },
   deliveryOffers: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'deliveryOffer'
+    ref: 'deliveryOffer',
+    required: true
   }],
+  selectedDeliveryOffer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'deliveryOffer',
+  },
+  status: {
+    type: String,
+    enum: ['awaiting_offers', 'offer_selected', 'offer_accepted', 'canceled'],
+    default: 'awaiting_offers'
+  },
   contract: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Contract'
+    ref: 'Contract',
+    required: true
   },
 })
 
