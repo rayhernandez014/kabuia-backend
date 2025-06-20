@@ -7,6 +7,7 @@ const Product = require('../models/product')
 const DeliveryRequest = require('../models/deliveryRequest')
 const DeliveryOffer = require('../models/deliveryOffer')
 const Contract = require('../models/contract')
+const Review = require('../models/review')
 
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
@@ -198,7 +199,7 @@ const contractValidator = async (request, response, next) => {
     })
   }
 
-  request.contract = contract;
+  request.contract = contract
 
   const loggedUser = request.user
 
@@ -207,6 +208,22 @@ const contractValidator = async (request, response, next) => {
         error: 'you are not authorized to perform this action'
     })
   }
+
+  next()
+
+}
+
+const reviewValidator = async (request, response, next) => {
+
+  const review = await Review.findById(request.params.id).exec()
+
+  if(!review){
+    return response.status(404).json({
+        error: 'review does not exist'
+    })
+  }
+
+  request.review = review
 
   next()
 
@@ -234,5 +251,6 @@ module.exports = {
   deliveryRequestValidator,
   deliveryOfferValidator,
   contractValidator,
+  reviewValidator,
   roleValidator
 }

@@ -32,30 +32,29 @@ const contractSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Review'
   }],
-  statusHistory: {
-    type: [String],
-    required: true,
-    validate: {
-      validator: function (v) {
-        const standard = new Set(['placed', 'preparing', 'ready', 'delivering', 'delivered', 'picked_up', 'canceled'])
-        const receivedSet = new Set (v)
-        return receivedSet.isSubsetOf(standard)
-      },
-      message: props => 'last contract status is invalid'
-    } 
-  },
-  statusTimestamps: {
-    type: [Date],
-    required: true,
-    validate: {
-      validator: function (v) {        
-        return v.every((d)=>{
-          return d instanceof Date && !isNaN(d.getTime())
-        })
-      },
-      message: props => 'last timestamp is invalid'
-    }
-  },
+  history:[{
+    status: {
+      type: String,
+      required: true,
+      validate: {
+        validator: function (v) {
+          const standard = ['placed', 'preparing', 'ready', 'delivering', 'delivered', 'picked_up', 'canceled']
+          return standard.includes(v)
+        },
+        message: props => 'new contract status is invalid'
+      } 
+    },
+    timestamp: {
+      type: [Date],
+      required: true,
+      validate: {
+        validator: function (v) {        
+          return v instanceof Date && !isNaN(v.getTime())
+        },
+        message: props => 'new timestamp is invalid'
+      }
+    },
+  }],  
   expectedReadyDate: {
     type: Date,
     required: true,

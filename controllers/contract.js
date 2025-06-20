@@ -69,8 +69,10 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
       buyer: buyer._id,
       seller: seller, 
       order: order, 
-      statusHistory: ['placed'],
-      statusTimestamps: [new Date()],
+      history: {
+        status: 'placed',
+        timestamp: new Date()
+      },
       expectedReadyDate: expectedReadyDate,
       pickupLocation: pickupLocation
     })
@@ -90,8 +92,10 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
       buyer: buyer._id,
       seller: seller, 
       products: order,
-      statusHistory: ['placed'],
-      statusTimestamps: [new Date()],
+      history: {
+        status: 'placed',
+        timestamp: new Date()
+      },
       expectedReadyDate: expectedReadyDate,
       deliveryLocation: deliveryLocation
     })
@@ -193,8 +197,7 @@ contractRouter.put('/updateDetails/:id', userExtractor, contractValidator, async
 contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async (request, response) => {
   const { newStatus } = request.body
 
-  const statusHistory = request.contract.statusHistory
-  const statusTimestamps = request.contract.statusTimestamps
+  const history = request.contract.history
 
   const validTransitions = {
     placed: [
@@ -237,7 +240,7 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
     ]
   }
 
-  const validOptions = validTransitions[statusHistory.at(-1)]
+  const validOptions = validTransitions[history.at(-1).status]
 
   const isValidStatus = validOptions.some((o) => {
     return newStatus === o.to
@@ -260,8 +263,10 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
   //for delivering and picking up, apply payments to seller and deliverer (in contracts with delivering)
 
   const receivedContract = {
-    statusHistory: [...statusHistory, newStatus],
-    statusTimestamps: [statusTimestamps, new Date()]
+    history: [...history, {
+      status: newStatus,
+      timestamp: new Date()
+    }]
   }
 
   let updatedContract;

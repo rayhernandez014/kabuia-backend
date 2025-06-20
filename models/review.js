@@ -26,7 +26,20 @@ const reviewSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Contract',
     required: true
-  }
+  },
+  editHistory: [{
+    grade: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 5
+    },
+    description: {
+      type: String,
+      required: true,
+      minLength: 10
+    },
+  }]
 })
 
 reviewSchema.set('toJSON', {
