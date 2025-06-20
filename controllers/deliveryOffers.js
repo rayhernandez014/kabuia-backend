@@ -14,14 +14,8 @@ deliveryOffersRouter.get('/:deliveryRequest', async (request, response) => {
   response.json(deliveryOffers)
 })
 
-deliveryOffersRouter.post('/', userExtractor, async (request, response) => {
+deliveryOffersRouter.post('/', userExtractor, roleValidator(['deliverer']), async (request, response) => {
   const { price, deliveryRequestId } = request.body
-
-  if (request.user.type !== 'deliverer') {
-    return response.status(403).json({
-      error: 'user must be a deliverer'
-    })
-  }
 
   const deliveryRequest = await DeliveryRequest.findById({id: deliveryRequestId}).exec()
   

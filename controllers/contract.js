@@ -1,6 +1,6 @@
 const contractRouter = require('express').Router()
 const Contract = require('../models/contract')
-const { userExtractor, contractValidator } = require('../utils/middleware')
+const { userExtractor, contractValidator, roleValidator } = require('../utils/middleware')
 const Buyer = require('../models/buyer')
 const ContractWithPickup = require('../models/contractWithPickup')
 const ContractWithDelivery = require('../models/contractWithDelivery')
@@ -13,20 +13,12 @@ contractRouter.get('/', userExtractor, async (request, response) => {
   response.json(contracts)
 })
 
-contractRouter.post('/', userExtractor, async (request, response) => {
+contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request, response) => {
   const { sellerId, expectedReadyDate, contractType, pickupLocation, deliveryLocation } = request.body
   
   const session = await mongoose.startSession()
   req.session.mongoSession = session
   session.startTransaction()
-
-  if (request.user.type !== 'buyer') {
-    await session.abortTransaction();
-    session.endSession();
-    return response.status(403).json({
-      error: 'user must be a buyer'
-    })
-  }
 
   const seller = await Seller.findById({id: sellerId}).session(session).exec()
 

@@ -8,14 +8,8 @@ productsRouter.get('/', async (request, response) => {
   response.json(products)
 })
 
-productsRouter.post('/', userExtractor, async (request, response) => {
+productsRouter.post('/', userExtractor, roleValidator(['seller']), async (request, response) => {
   const { name, price, unit, quantity, description, photo } = request.body
-
-  if (request.user.type !== 'seller') {
-    return response.status(403).json({
-      error: 'user must be a seller'
-    })
-  }
 
   const seller = request.user
 

@@ -14,14 +14,8 @@ deliveryRequestsRouter.get('/:date/:origin/:destination', async (request, respon
   response.json(deliveryRequests)
 })
 
-deliveryRequestsRouter.post('/', userExtractor, async (request, response) => {
+deliveryRequestsRouter.post('/', userExtractor, roleValidator(['seller']), async (request, response) => {
   const { title, description, origin, destination, date, contract } = request.body
-
-  if (request.user.type !== 'seller') {
-    return response.status(403).json({
-      error: 'user must be a seller'
-    })
-  }
 
   const seller = request.user
 

@@ -46,11 +46,25 @@ const contractSchema = new mongoose.Schema({
   },
   statusTimestamps: {
     type: [Date],
-    required: true
+    required: true,
+    validate: {
+      validator: function (v) {        
+        return v.every((d)=>{
+          return d instanceof Date && !isNaN(d.getTime())
+        })
+      },
+      message: props => 'last timestamp is invalid'
+    }
   },
   expectedReadyDate: {
     type: Date,
-    required: true
+    required: true,
+    validate: {
+      validator: function (value) {
+        return value instanceof Date && !isNaN(value.getTime()) && value > new Date();
+      },
+      message: 'invalid date'
+    }
   },
 }, options)
 

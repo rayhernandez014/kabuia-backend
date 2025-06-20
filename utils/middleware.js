@@ -212,6 +212,18 @@ const contractValidator = async (request, response, next) => {
 
 }
 
+const roleValidator = (roles) => async (request, response, next) => {
+
+  const role = request.user.type
+
+  if (!roles.includes(role)) {
+    return response.status(403).json({ error: 'you are not authorized to perform this action' })
+  }
+
+  next()
+
+}
+
 module.exports = {
   requestLogger,
   unknownEndpoint,
@@ -221,5 +233,6 @@ module.exports = {
   productValidator,
   deliveryRequestValidator,
   deliveryOfferValidator,
-  contractValidator
+  contractValidator,
+  roleValidator
 }
