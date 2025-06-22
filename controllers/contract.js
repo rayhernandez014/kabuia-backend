@@ -256,13 +256,6 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
 
   //for delivering and picking up, apply payments to seller and deliverer (in contracts with delivering)
 
-  const receivedContract = {
-    history: [...history, {
-      status: newStatus,
-      timestamp: new Date()
-    }]
-  }
-
   let updatedContract;
 
   if(newStatus === 'canceled'){
@@ -281,7 +274,13 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
       }).session(session).exec()
     })
 
-    updatedContract = await Contract.findByIdAndUpdate(request.params.id, receivedContract , {
+    updatedContract = await Contract.findByIdAndUpdate(request.params.id, {
+      $push: { history: {
+          status: newStatus,
+          timestamp: new Date()
+        } 
+      }
+    } , {
       new: true,
       runValidators: true,
       context: 'query'
@@ -293,7 +292,13 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
 
   }
   else{
-    updatedContract = await Contract.findByIdAndUpdate(request.params.id, receivedContract , {
+    updatedContract = await Contract.findByIdAndUpdate(request.params.id, {
+      $push: { history: {
+          status: newStatus,
+          timestamp: new Date()
+        } 
+      }
+    } , {
       new: true,
       runValidators: true,
       context: 'query'
