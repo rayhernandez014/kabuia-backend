@@ -24,16 +24,10 @@ productsRouter.post('/', userExtractor, roleValidator(['seller']), async (reques
   })
   
   const savedProduct = await product.save().exec()  
-  
-  const newSellerData = {
-    catalog: [...seller.catalog, savedProduct._id]
-  }
-  
-  const updatedSeller = await Seller.findByIdAndUpdate(seller._id, newSellerData, {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).exec()
+
+  seller.catalog = [...seller.catalog, savedProduct._id]
+
+  const updatedSeller = await seller.save().exec()
 
   response.status(201).json({savedProduct, updatedSeller})
 
@@ -41,17 +35,13 @@ productsRouter.post('/', userExtractor, roleValidator(['seller']), async (reques
 
 productsRouter.delete( '/:id', userExtractor, productValidator, async (request, response) => {
 
+  const seller = request.user
+
   await Product.findByIdAndRemove(request.params.id).exec()
 
-  const newSellerData = {
-    catalog: [...request.user.catalog].filter((p) => p.toString() !== request.params.id)
-  }
+  seller.catalog = [...request.user.catalog].filter((p) => p.toString() !== request.params.id)
 
-  await Seller.findByIdAndUpdate(request.user._id, newSellerData, {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).exec()
+  const updatedSeller = await seller.save().exec()
 
   response.status(204).end()
 

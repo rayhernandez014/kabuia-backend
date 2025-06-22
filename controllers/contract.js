@@ -120,19 +120,13 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
   })
 
   const savedContract = await contract.save({ session }).exec()  
-
-  const newBuyerData = {
-    shoppingCart: {
-      items: [],
-      quantities: []
-    }
-  }
   
-  const updatedBuyer = await Buyer.findByIdAndUpdate(request.params.id, newBuyerData, {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).session(session).exec()
+  buyer.shoppingCart = {
+    items: [],
+    quantities: []
+  }
+
+  const updatedBuyer = await buyer.save({ session }).exec()
 
   await session.commitTransaction()
   session.endSession()

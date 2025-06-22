@@ -31,14 +31,10 @@ deliveryRequestsRouter.post('/', userExtractor, roleValidator(['seller']), async
   })
   
   const savedDeliveryRequest = await deliveryRequest.save().exec()  
-  
-  const updatedSeller = await Seller.findByIdAndUpdate(seller._id, {
-    $push: { deliveryRequests: savedDeliveryRequest._id }
-  }, {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).exec()
+
+  seller.deliveryRequests = [...seller.deliveryRequests, savedDeliveryRequest._id]
+
+  const updatedSeller = await seller.save().exec()
 
   const contractData = {
     deliveryRequest: savedDeliveryRequest._id
@@ -108,11 +104,12 @@ deliveryRequestsRouter.put('/selectOffer/:id', userExtractor, deliveryRequestVal
   req.session.mongoSession = session
   session.startTransaction()
 
-  const updatedDeliveryRequest = await DeliveryRequest.findByIdAndUpdate(request.params.id, receivedDeliveryRequest , {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).session(session).exec()
+  const deliveryRequest = request.deliveryRequest
+
+  deliveryRequest.status = 'offer_selected'
+  deliveryRequest.selectedDeliveryOffer = selectedDeliveryOffer
+
+  const updatedDeliveryRequest = await deliveryRequest.save({ session }).exec()
 
   DeliveryOffer.updateMany({deliveryRequest: request.params.id, _id: { $ne: selectedDeliveryOffer }, status: 'pending'}, {status: 'rejected'}, { session }).exec()
 

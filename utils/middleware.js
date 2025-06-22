@@ -117,6 +117,8 @@ const productValidator = async (request, response, next) => {
     })
   }
 
+  request.product = product
+
   next()
 
 }
@@ -151,6 +153,8 @@ const deliveryRequestValidator = async (request, response, next) => {
     })
   }
 
+  request.deliveryRequest = deliveryRequest
+
   next()
 
 }
@@ -184,6 +188,8 @@ const deliveryOfferValidator = async (request, response, next) => {
         error: 'you are not authorized to perform this action'
     })
   }
+
+  request.deliveryOffer = deliveryOffer
 
   next()
 

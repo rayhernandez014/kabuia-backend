@@ -29,31 +29,19 @@ deliveryOffersRouter.post('/', userExtractor, roleValidator(['deliverer']), asyn
 
   const deliveryOffer = new DeliveryOffer({
     price: price,
-    deliveryRequest: deliveryRequest,
+    deliveryRequest: deliveryRequest._id,
     deliverer: deliverer._id
   })
   
   const savedDeliveryOffer = await deliveryOffer.save().exec()  
 
-  const newDeliveryRequestData = {
-    deliveryOffers: [...deliveryRequest.deliveryOffers, savedDeliveryOffer._id]
-  }
+  deliveryRequest.deliveryOffers = [...deliveryRequest.deliveryOffers, savedDeliveryOffer._id]
 
-  const updatedDeliveryRequest = await DeliveryRequest.findByIdAndUpdate(deliveryRequest, newDeliveryRequestData, {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).exec()
-  
-  const newDelivererData = {
-    deliveryOffers: [...deliverer.deliveryOffers, savedDeliveryOffer._id]
-  }
-  
-  const updatedDeliverer = await Deliverer.findByIdAndUpdate(deliverer._id, newDelivererData, {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).exec()
+  await deliveryRequest.save().exec()
+
+  deliverer.deliveryOffers = [...deliverer.deliveryOffers, savedDeliveryOffer._id]
+
+  const updatedDeliverer = deliverer.save().exec()
 
   response.status(201).json({savedDeliveryOffer, updatedDeliverer})
 
@@ -81,19 +69,14 @@ deliveryOffersRouter.delete( '/:id', userExtractor, deliveryOfferValidator, asyn
 
 deliveryOffersRouter.put('/acceptDelivery/:id', userExtractor, deliveryOfferValidator, async (request, response) => {
 
-  const receivedDeliveryOffer = {
-    status: 'accepted'
-  }
 
   const session = await mongoose.startSession()
   req.session.mongoSession = session
   session.startTransaction()
 
-  const updatedDeliveryOffer = await DeliveryOffer.findByIdAndUpdate(request.params.id, receivedDeliveryOffer , {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).session(session).exec()
+  const deliveryOffer = request.deliveryOffer.status = 'accepted'
+
+  const updatedDeliveryOffer = await deliveryOffer.save({ session }).exec()
 
   const receivedDeliveryRequest = {
     status: 'offer_accepted'
@@ -127,20 +110,14 @@ deliveryOffersRouter.put('/acceptDelivery/:id', userExtractor, deliveryOfferVali
 
 
 deliveryOffersRouter.put('/declineDelivery/:id', userExtractor, deliveryOfferValidator, async (request, response) => {
-  
-  const receivedDeliveryOffer = {
-    status: 'declined'
-  }
 
   const session = await mongoose.startSession()
   req.session.mongoSession = session
   session.startTransaction()
 
-  const updatedDeliveryOffer = await DeliveryOffer.findByIdAndUpdate(request.params.id, receivedDeliveryOffer , {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).session(session).exec()
+  const deliveryOffer = request.deliveryOffer.status = 'declined'
+
+  const updatedDeliveryOffer = await deliveryOffer.save({ session }).exec()
 
   const nextBestOffer = await DeliveryOffer.findOne({
     _id: request.params.id,
