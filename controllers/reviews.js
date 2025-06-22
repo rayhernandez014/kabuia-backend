@@ -3,7 +3,6 @@ const Contract = require('../models/contract')
 const Review = require('../models/review')
 const User = require('../models/user')
 const { userExtractor, reviewValidator } = require('../utils/middleware')
-const mongoose = require('mongoose')
 
 reviewsRouter.get('/', async (request, response) => {
   const reviews = await Review.find({}).exec()
@@ -15,10 +14,6 @@ reviewsRouter.post('/', userExtractor, async (request, response) => {
 
   const author = request.user
 
-  const session = await mongoose.startSession()
-  req.session.mongoSession = session
-  session.startTransaction()
-
   const review = new Review({
     grade: grade,
     description: description,
@@ -27,7 +22,7 @@ reviewsRouter.post('/', userExtractor, async (request, response) => {
     author: author._id
   })
   
-  const savedReview = await review.save({ session }).exec()  
+  const savedReview = await review.save().exec()  
 
   const updatedRecipient = await User.findByIdAndUpdate(recipient, {
     $push: { reviews: savedReview._id }
@@ -35,7 +30,7 @@ reviewsRouter.post('/', userExtractor, async (request, response) => {
     new: true,
     runValidators: true,
     context: 'query'
-  }).session(session).exec()
+  }).exec()
   
   const updatedContract = await Contract.findByIdAndUpdate(contract, {
     $push: { reviews: savedReview._id }
@@ -43,11 +38,7 @@ reviewsRouter.post('/', userExtractor, async (request, response) => {
     new: true,
     runValidators: true,
     context: 'query'
-  }).session(session).exec()
-
-  await session.commitTransaction()
-  session.endSession()
-  req.session.mongoSession = null
+  }).exec()
 
   response.status(201).json({savedReview})
 
