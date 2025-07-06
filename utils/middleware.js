@@ -24,7 +24,7 @@ const unknownEndpoint = (request, response) => {
 
 const errorHandler = (error, request, response, next) => {
 
-  if (request.session.mongoSession) {
+  if (request?.session?.mongoSession) {
     request.session.mongoSession.abortTransaction().catch(err => console.error('Transaction abort failed:', err));
     request.session.mongoSession.endSession().catch(err => console.error('Session close failed:', err));
     request.session.mongoSession = null;

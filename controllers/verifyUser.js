@@ -6,7 +6,7 @@ const { sendEmail } = require('../utils/emailManager')
 
 verifyUser.post('/', async (request, response) => {
 
-  const { email, phone, method } = request.body
+  const { email, phone } = request.body
 
   let user = null
 
@@ -42,15 +42,15 @@ verifyUser.post('/', async (request, response) => {
 
   await config.redisClient.set(`${precode}_${user._id.toString()}`, token)
 
-  if(method === 'email'){
-    await sendEmail('kabuia@email.com', email, 'Reset your password', `https://www.fakeurl.com/verify/?method=${precode}&token=${token}`)
+  if(email){
+    await sendEmail('kabuia@email.com', user.email, 'Reset your password', `https://www.fakeurl.com/verify/?method=${precode}&token=${token}`)
   }
-  else if (method === 'sms'){
+  else if (phone){
     console.log('sms')
   }
   else{
     return response.status(400).json({
-      error: 'please specify the recovery method'
+      error: 'please specify the verification method'
     })
   }
 

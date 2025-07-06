@@ -33,15 +33,15 @@ deliveryOffersRouter.post('/', userExtractor, roleValidator(['deliverer']), asyn
     deliverer: deliverer._id
   })
   
-  const savedDeliveryOffer = await deliveryOffer.save().exec()  
+  const savedDeliveryOffer = await deliveryOffer.save() 
 
   deliveryRequest.deliveryOffers = [...deliveryRequest.deliveryOffers, savedDeliveryOffer._id]
 
-  await deliveryRequest.save().exec()
+  await deliveryRequest.save()
 
   deliverer.deliveryOffers = [...deliverer.deliveryOffers, savedDeliveryOffer._id]
 
-  const updatedDeliverer = deliverer.save().exec()
+  const updatedDeliverer = await deliverer.save()
 
   response.status(201).json({savedDeliveryOffer, updatedDeliverer})
 
@@ -76,7 +76,7 @@ deliveryOffersRouter.put('/acceptDelivery/:id', userExtractor, deliveryOfferVali
 
   const deliveryOffer = request.deliveryOffer.status = 'accepted'
 
-  const updatedDeliveryOffer = await deliveryOffer.save({ session }).exec()
+  const updatedDeliveryOffer = await deliveryOffer.save({ session })
 
   const receivedDeliveryRequest = {
     status: 'offer_accepted'
@@ -117,7 +117,7 @@ deliveryOffersRouter.put('/declineDelivery/:id', userExtractor, deliveryOfferVal
 
   const deliveryOffer = request.deliveryOffer.status = 'declined'
 
-  const updatedDeliveryOffer = await deliveryOffer.save({ session }).exec()
+  const updatedDeliveryOffer = await deliveryOffer.save({ session })
 
   const nextBestOffer = await DeliveryOffer.findOne({
     _id: request.params.id,
@@ -126,7 +126,7 @@ deliveryOffersRouter.put('/declineDelivery/:id', userExtractor, deliveryOfferVal
 
   if(nextBestOffer){
     nextBestOffer.status = 'selected'
-    await nextBestOffer.save({ session }).exec()
+    await nextBestOffer.save({ session })
 
     //notify the deliverer
   }

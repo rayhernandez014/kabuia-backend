@@ -30,11 +30,11 @@ deliveryRequestsRouter.post('/', userExtractor, roleValidator(['seller']), async
     deliveryOffers: []
   })
   
-  const savedDeliveryRequest = await deliveryRequest.save().exec()  
+  const savedDeliveryRequest = await deliveryRequest.save()
 
   seller.deliveryRequests = [...seller.deliveryRequests, savedDeliveryRequest._id]
 
-  const updatedSeller = await seller.save().exec()
+  const updatedSeller = await seller.save()
 
   const contractData = {
     deliveryRequest: savedDeliveryRequest._id
@@ -69,7 +69,7 @@ deliveryRequestsRouter.delete( '/:id', userExtractor, deliveryRequestValidator, 
 })
 */
 
-deliveryRequestsRouter.put('/:id', userExtractor, deliveryRequestValidator, async (request, response) => {
+deliveryRequestsRouter.put('/update/:id', userExtractor, deliveryRequestValidator, async (request, response) => {
   const { title, description, date, origin, destination } = request.body
 
   const receivedDeliveryRequest = {
@@ -109,7 +109,7 @@ deliveryRequestsRouter.put('/selectOffer/:id', userExtractor, deliveryRequestVal
   deliveryRequest.status = 'offer_selected'
   deliveryRequest.selectedDeliveryOffer = selectedDeliveryOffer
 
-  const updatedDeliveryRequest = await deliveryRequest.save({ session }).exec()
+  const updatedDeliveryRequest = await deliveryRequest.save({ session })
 
   DeliveryOffer.updateMany({deliveryRequest: request.params.id, _id: { $ne: selectedDeliveryOffer }, status: 'pending'}, {status: 'rejected'}, { session }).exec()
 

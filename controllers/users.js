@@ -58,7 +58,7 @@ usersRouter.post('/', async (request, response) => {
       shoppingCart: shoppingCart
     })
 
-    const savedBuyer = await buyer.save().exec()
+    const savedBuyer = await buyer.save()
     response.status(201).json(savedBuyer)
   }
   else if (type === 'seller'){
@@ -78,7 +78,7 @@ usersRouter.post('/', async (request, response) => {
       catalog: []
     })
 
-    const savedSeller = await seller.save().exec()
+    const savedSeller = await seller.save()
     response.status(201).json(savedSeller)
   }
   else if (type === 'deliverer'){
@@ -97,7 +97,7 @@ usersRouter.post('/', async (request, response) => {
       deliveryRequests: [],
     })
 
-    const savedDeliverer = await deliverer.save().exec()
+    const savedDeliverer = await deliverer.save()
     response.status(201).json(savedDeliverer)
   }
   else{
@@ -115,7 +115,7 @@ usersRouter.delete( '/:id', userExtractor, userValidator, async (request, respon
 
 })
 
-usersRouter.put('/:id', userExtractor, userValidator, async (request, response) => {
+usersRouter.put('/update/:id', userExtractor, userValidator, async (request, response) => {
   const { firstname, lastname, photo, stripeID, locations, shoppingCart } = request.body
 
   if(request.user.type === 'buyer'){
@@ -208,9 +208,9 @@ usersRouter.put('/password/:id', userExtractor, userValidator, async (request, r
   response.status(204).end()
 })
 
-usersRouter.put('/verify/:method/:id/:token', async (request, response) => {
+usersRouter.put('/verify', async (request, response) => {
 
-  const { method, token } = request.params
+  const { method, token } = request.query
 
   let precode = null
 
@@ -259,7 +259,7 @@ usersRouter.put('/verify/:method/:id/:token', async (request, response) => {
 
   }
   else{
-    return response.status(404).json({ error: 'token missing or invalid' })
+    return response.status(404).json({ error: 'token missing or invalid 2' })
   }
 
 })

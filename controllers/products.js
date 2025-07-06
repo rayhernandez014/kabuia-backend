@@ -23,11 +23,11 @@ productsRouter.post('/', userExtractor, roleValidator(['seller']), async (reques
     seller: seller._id
   })
   
-  const savedProduct = await product.save().exec()  
+  const savedProduct = await product.save() 
 
   seller.catalog = [...seller.catalog, savedProduct._id]
 
-  const updatedSeller = await seller.save().exec()
+  const updatedSeller = await seller.save()
 
   response.status(201).json({savedProduct, updatedSeller})
 
@@ -41,7 +41,7 @@ productsRouter.delete( '/:id', userExtractor, productValidator, async (request, 
 
   seller.catalog = [...request.user.catalog].filter((p) => p.toString() !== request.params.id)
 
-  const updatedSeller = await seller.save().exec()
+  const updatedSeller = await seller.save()
 
   response.status(204).end()
 

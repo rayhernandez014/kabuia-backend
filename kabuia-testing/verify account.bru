@@ -1,0 +1,16 @@
+meta {
+  name: verify account
+  type: http
+  seq: 6
+}
+
+put {
+  url: http://localhost:3000/api/users/verify?method=e&token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InJheWhlcm5hbmRlejAxNEBnbWFpbC5jb20iLCJwaG9uZSI6IjgyOTgxOTY2MDciLCJpZCI6IjY4NjFlZjUyNTBkZGM2ZWI0ODg1NmJlMCIsImlhdCI6MTc1MTc2MzkwNn0.2wj-shinc-eLBpzxmjAxd2zIMsjnq_MDWxP8zTlNJ6M
+  body: none
+  auth: inherit
+}
+
+params:query {
+  method: e
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InJheWhlcm5hbmRlejAxNEBnbWFpbC5jb20iLCJwaG9uZSI6IjgyOTgxOTY2MDciLCJpZCI6IjY4NjFlZjUyNTBkZGM2ZWI0ODg1NmJlMCIsImlhdCI6MTc1MTc2MzkwNn0.2wj-shinc-eLBpzxmjAxd2zIMsjnq_MDWxP8zTlNJ6M
+}

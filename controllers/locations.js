@@ -1,7 +1,7 @@
 const locationsRouter = require('express').Router()
-const Location = require('../models/user')
+const Location = require('../models/location')
 const User = require('../models/user')
-const { userExtractor, reviewValidator, locationValidator } = require('../utils/middleware')
+const { userExtractor, locationValidator } = require('../utils/middleware')
 
 locationsRouter.get('/', async (request, response) => {
   const location = await Location.find({}).exec()
@@ -19,7 +19,7 @@ locationsRouter.post('/', userExtractor, async (request, response) => {
     user: user._id
   })
   
-  const savedLocation = await location.save().exec()  
+  const savedLocation = await location.save()
 
   const updatedUser = await User.findByIdAndUpdate(user._id, {
     $push: { locations: savedLocation._id }
@@ -41,7 +41,7 @@ locationsRouter.put('/:id', userExtractor, locationValidator, async (request, re
   location.latitude = latitude
   location.longitude = longitude
 
-  const updatedLocation = await location.save().exec()
+  const updatedLocation = await location.save()
 
   response.json(updatedLocation)
 

@@ -119,14 +119,14 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
     }).session(session).exec()
   })
 
-  const savedContract = await contract.save({ session }).exec()  
+  const savedContract = await contract.save({ session })
   
   buyer.shoppingCart = {
     items: [],
     quantities: []
   }
 
-  const updatedBuyer = await buyer.save({ session }).exec()
+  const updatedBuyer = await buyer.save({ session })
 
   await session.commitTransaction()
   session.endSession()

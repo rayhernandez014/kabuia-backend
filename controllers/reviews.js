@@ -22,7 +22,7 @@ reviewsRouter.post('/', userExtractor, async (request, response) => {
     author: author._id
   })
   
-  const savedReview = await review.save().exec()  
+  const savedReview = await review.save()  
 
   const updatedRecipient = await User.findByIdAndUpdate(recipient, {
     $push: { reviews: savedReview._id }
@@ -58,7 +58,7 @@ reviewsRouter.put('/:id', userExtractor, reviewValidator, async (request, respon
   review.grade = grade
   review.description = description
 
-  const updatedReview = await review.save().exec()
+  const updatedReview = await review.save()
 
   response.json(updatedReview)
 
