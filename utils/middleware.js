@@ -8,6 +8,7 @@ const DeliveryRequest = require('../models/deliveryRequest')
 const DeliveryOffer = require('../models/deliveryOffer')
 const Contract = require('../models/contract')
 const Review = require('../models/review')
+const Location = require('../models/location')
 
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
@@ -23,10 +24,10 @@ const unknownEndpoint = (request, response) => {
 
 const errorHandler = (error, request, response, next) => {
 
-  if (req.session.mongoSession) {
-    req.session.mongoSession.abortTransaction().catch(err => console.error('Transaction abort failed:', err));
-    req.session.mongoSession.endSession().catch(err => console.error('Session close failed:', err));
-    req.session.mongoSession = null;
+  if (request.session.mongoSession) {
+    request.session.mongoSession.abortTransaction().catch(err => console.error('Transaction abort failed:', err));
+    request.session.mongoSession.endSession().catch(err => console.error('Session close failed:', err));
+    request.session.mongoSession = null;
   }
 
   if (error.name === 'CastError') {
@@ -235,6 +236,30 @@ const reviewValidator = async (request, response, next) => {
 
 }
 
+const locationValidator = async (request, response, next) => {
+
+  const location = await Location.findById(request.params.id).exec()
+
+  if(!location){
+    return response.status(404).json({
+        error: 'location does not exist'
+    })
+  }
+
+  const loggedUser = request.user
+
+  if(location.user.toString() !== loggedUser._id.toString()){
+    return response.status(403).json({
+        error: 'you are not authorized to perform this action'
+    })
+  }
+
+  request.location = location
+
+  next()
+
+}
+
 const roleValidator = (roles) => async (request, response, next) => {
 
   const role = request.user.type
@@ -258,5 +283,6 @@ module.exports = {
   deliveryOfferValidator,
   contractValidator,
   reviewValidator,
-  roleValidator
+  roleValidator,
+  locationValidator
 }

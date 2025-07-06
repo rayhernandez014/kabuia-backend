@@ -35,13 +35,12 @@ app.use('/api/forgotPassword', forgotPassword)
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)
 
-
 process.on('SIGINT', async () => {
-  mongoose.connection.close( () => {
-    logger.info('Mongoose disconnected on app termination')
-    process.exit(0)
-  })
-  config.redisClient.quit()
+  await mongoose.connection.close();
+  console.log('Mongoose connection closed gracefully')
+
+  await config.redisClient.quit()
+  console.log('Redis connection closed gracefully')
 })
 
 module.exports = app

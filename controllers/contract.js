@@ -17,7 +17,7 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
   const { sellerId, expectedReadyDate, contractType, pickupLocation, deliveryLocation } = request.body
   
   const session = await mongoose.startSession()
-  req.session.mongoSession = session
+  request.session.mongoSession = session
   session.startTransaction()
 
   const seller = await Seller.findById({id: sellerId}).session(session).exec()
@@ -130,7 +130,7 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
 
   await session.commitTransaction()
   session.endSession()
-  req.session.mongoSession = null
+  request.session.mongoSession = null
 
   response.status(201).json({savedContract})
 
@@ -261,7 +261,7 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
   if(newStatus === 'canceled'){
 
     const session = await mongoose.startSession()
-    req.session.mongoSession = session
+    request.session.mongoSession = session
     session.startTransaction()
 
     const buyer = await Buyer.findById( request.contract.buyer ).session(session).exec()
@@ -288,7 +288,7 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
 
     await session.commitTransaction()
     session.endSession()
-    req.session.mongoSession = null
+    request.session.mongoSession = null
 
   }
   else{

@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const coordinatesSchema = new mongoose.Schema({
+const locationSchema = new mongoose.Schema({
   latitude: {
     type: Number,
     required: true
@@ -8,10 +8,15 @@ const coordinatesSchema = new mongoose.Schema({
   longitude: {
     type: Number,
     required: true
-  }
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
 })
 
-coordinatesSchema.set('toJSON', {
+locationSchema.set('toJSON', {
   transform: (document, returnedObject) => {
     returnedObject.id = returnedObject._id.toString()
     delete returnedObject._id
@@ -19,6 +24,6 @@ coordinatesSchema.set('toJSON', {
   }
 })
 
-const Coordinates = mongoose.model('Coordinates', coordinatesSchemaSchema)
+const Location = mongoose.model('Location', locationSchema)
 
-module.exports = Coordinates
+module.exports = Location

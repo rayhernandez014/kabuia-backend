@@ -11,12 +11,12 @@ const deliveryRequestSchema = new mongoose.Schema({
   },
   origin: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Coordinates',
+    ref: 'Location',
     required: true
   },
   destination: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Coordinates',
+    ref: 'Location',
     required: true
   }, 
   date: {

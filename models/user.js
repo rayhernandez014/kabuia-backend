@@ -77,8 +77,8 @@ const userSchema = new mongoose.Schema({
   },
   locations: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Coordinates',
-    required: true
+    ref: 'Location',
+    required: false //required on checkout thru contract
   }],
 }, options)
 

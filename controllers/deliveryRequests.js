@@ -101,7 +101,7 @@ deliveryRequestsRouter.put('/selectOffer/:id', userExtractor, deliveryRequestVal
   }
 
   const session = await mongoose.startSession()
-  req.session.mongoSession = session
+  request.session.mongoSession = session
   session.startTransaction()
 
   const deliveryRequest = request.deliveryRequest
@@ -115,7 +115,7 @@ deliveryRequestsRouter.put('/selectOffer/:id', userExtractor, deliveryRequestVal
 
   await session.commitTransaction()
   session.endSession()
-  req.session.mongoSession = null
+  request.session.mongoSession = null
 
   //notify all candidates
 

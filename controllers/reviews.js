@@ -64,4 +64,4 @@ reviewsRouter.put('/:id', userExtractor, reviewValidator, async (request, respon
 
 })
 
-module.exports = productsRouter
+module.exports = reviewsRouter

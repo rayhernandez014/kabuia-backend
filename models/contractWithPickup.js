@@ -5,7 +5,7 @@ const options = { discriminatorKey: 'type' }
 const ContractWithPickup = Contract.discriminator('ContractWithPickup', new mongoose.Schema({
   pickupLocation: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Coordinates',
+    ref: 'Location',
     required: true
   },
 }, options))

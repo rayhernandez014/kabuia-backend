@@ -35,7 +35,7 @@ const ContractWithDelivery = Contract.discriminator('ContractWithDelivery', new 
   },
   deliveryLocation: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Coordinates',
+    ref: 'Location',
     required: true
   },
 }, options))
