@@ -1,4 +1,4 @@
-const contractRouter = require('express').Router()
+const contractsRouter = require('express').Router()
 const Contract = require('../models/contract')
 const { userExtractor, contractValidator, roleValidator } = require('../utils/middleware')
 const Buyer = require('../models/buyer')
@@ -8,12 +8,12 @@ const Seller = require('../models/seller')
 const Product = require('../models/product')
 const mongoose = require('mongoose')
 
-contractRouter.get('/', userExtractor, async (request, response) => {
+contractsRouter.get('/', userExtractor, async (request, response) => {
   const contracts = await Contract.find({ $or: [{buyer: request.user}, {seller: request.user}, {deliverer: request.user}]}).exec()
   response.json(contracts)
 })
 
-contractRouter.post('/', userExtractor, roleValidator(['Buyer']), async (request, response) => {
+contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (request, response) => {
   const { sellerId, expectedReadyDate, contractType, pickupLocation, deliveryLocation } = request.body
   
   const session = await mongoose.startSession()
@@ -95,7 +95,7 @@ contractRouter.post('/', userExtractor, roleValidator(['Buyer']), async (request
 
   //paying
   for( const [idx, item] of buyer.shoppingCart.items.entries()){
-    await Product.findByIdAndUpdate(item, { $inc: { stock: -buyer.shoppingCart.quantities[idx] } }, {
+    await Product.findByIdAndUpdate(item, { $inc: { stock: (buyer.shoppingCart.quantities[idx] * -1) } }, {
       new: true,
       runValidators: true,
       context: 'query'
@@ -138,7 +138,7 @@ productsRouter.delete( '/:id', userExtractor, productValidator, async (request, 
 })
 */
 /*
-contractRouter.put('/updateDetails/:id', userExtractor, contractValidator, async (request, response) => {
+contractsRouter.put('/updateDetails/:id', userExtractor, contractValidator, async (request, response) => {
   const { products, expectedReadyDate } = request.body
 
   const statusHistory = request.contract.statusHistory
@@ -171,7 +171,7 @@ contractRouter.put('/updateDetails/:id', userExtractor, contractValidator, async
 })
 */
 
-contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async (request, response) => {
+contractsRouter.put('/updateStatus/:id', userExtractor, contractValidator, async (request, response) => {
   const { newStatus } = request.body
 
   const history = request.contract.history
@@ -203,7 +203,7 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
         orderTypes: ['ContractWithDelivery']
       },
       {
-        to: 'picked-up',
+        to: 'picked_up',
         by: ['Buyer'],
         orderTypes: ['ContractWithPickup']
       },
@@ -217,17 +217,17 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
     ]
   }
 
-  const validOptions = validTransitions[history.at(-1).status]
-
-  const isValidStatus = validOptions.some((o) => {
+  const validOptions = validTransitions[history.at(-1).status] ?? null
+  
+  const isValidStatus = validOptions?.some((o) => {
     return newStatus === o.to
   })
 
-  const isValidRole = validOptions.some((o) => {
+  const isValidRole = validOptions?.some((o) => {
     return o.by.includes(request.user.type)
   })
 
-  const isValidOrderType = validOptions.some((o) => {
+  const isValidOrderType = validOptions?.some((o) => {
     return o.orderTypes.includes(request.contract.type)
   })
 
@@ -247,10 +247,8 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
     request.mongoSession = session
     session.startTransaction()
 
-    const buyer = await Buyer.findById( request.contract.buyer ).session(session).exec()
-
-    for( const [idx, item] of buyer.shoppingCart.items.entries()){
-      await Product.findByIdAndUpdate(item, { $inc: { stock: +buyer.shoppingCart.quantities[idx] } }, {
+    for( const [idx, item] of request.contract.order.items.entries()){
+      await Product.findByIdAndUpdate(item, { $inc: { stock: request.contract.order.quantities[idx] } }, {
         new: true,
         runValidators: true,
         context: 'query'
@@ -292,4 +290,4 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
 
 })
 
-module.exports = contractRouter
+module.exports = contractsRouter

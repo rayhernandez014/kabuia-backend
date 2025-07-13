@@ -1,0 +1,17 @@
+meta {
+  name: update contract status seller
+  type: http
+  seq: 6
+}
+
+put {
+  url: http://localhost:3000/api/contracts/updateStatus/6873c80ba720d27d730af4fb
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "newStatus": "picked_up"
+  }
+}
