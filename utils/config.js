@@ -1,5 +1,5 @@
 require('dotenv').config()
-const { createClient } = require('redis');
+const { createClient } = require('redis')
 
 const PORT = process.env.PORT
 

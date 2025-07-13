@@ -10,11 +10,11 @@ deliveryRequestsRouter.get('/:date/:origin/:destination', async (request, respon
 
   const {date, origin, destination} = request.params
 
-  const deliveryRequests = await DeliveryRequest.find({date: date, origin: origin, destination: destination}).exec()
+  const deliveryRequests = await DeliveryRequest.find({date: new Date(date), origin: origin, destination: destination}).exec()
   response.json(deliveryRequests)
 })
 
-deliveryRequestsRouter.post('/', userExtractor, roleValidator(['seller']), async (request, response) => {
+deliveryRequestsRouter.post('/', userExtractor, roleValidator(['Seller']), async (request, response) => {
   const { title, description, origin, destination, date, contract } = request.body
 
   const seller = request.user
@@ -24,7 +24,7 @@ deliveryRequestsRouter.post('/', userExtractor, roleValidator(['seller']), async
     description: description, 
     origin: origin, 
     destination: destination,
-    date: date,
+    date: new Date(date),
     seller: seller._id,
     contract: contract,
     deliveryOffers: []
@@ -77,7 +77,7 @@ deliveryRequestsRouter.put('/update/:id', userExtractor, deliveryRequestValidato
     description: description, 
     origin: origin, 
     destination: destination,
-    date: date,
+    date: new Date(date),
   }
 
   const updatedDeliveryRequest = await DeliveryRequest.findByIdAndUpdate(request.params.id, receivedDeliveryRequest , {
@@ -101,7 +101,7 @@ deliveryRequestsRouter.put('/selectOffer/:id', userExtractor, deliveryRequestVal
   }
 
   const session = await mongoose.startSession()
-  request.session.mongoSession = session
+  request.mongoSession = session
   session.startTransaction()
 
   const deliveryRequest = request.deliveryRequest
@@ -115,7 +115,7 @@ deliveryRequestsRouter.put('/selectOffer/:id', userExtractor, deliveryRequestVal
 
   await session.commitTransaction()
   session.endSession()
-  request.session.mongoSession = null
+  request.mongoSession = null
 
   //notify all candidates
 

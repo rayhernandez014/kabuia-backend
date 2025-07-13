@@ -6,20 +6,21 @@ const productSchema = new mongoose.Schema({
     required: true,
     minLength: 3
   },
+  description: {
+    type: String
+  },
   price: {
     type: Number,
     required: true
   },
   unit: {
     type: String,
-    required: true
+    required: true,
+    enum: ['kg', 'g', 'lb', 'oz', 'l', 'ml', 'gal', 'fl oz', 'ud', 'paq']
   },
   stock: {
     type: Number,
     required: true
-  },
-  description: {
-    type: String
   },
   seller: {
     type: mongoose.Schema.Types.ObjectId,

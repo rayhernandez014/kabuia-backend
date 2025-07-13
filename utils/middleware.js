@@ -22,13 +22,22 @@ const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 
-const errorHandler = (error, request, response, next) => {
+const errorHandler = async (error, request, response, next) => {
 
-  if (request?.session?.mongoSession) {
-    request.session.mongoSession.abortTransaction().catch(err => console.error('Transaction abort failed:', err));
-    request.session.mongoSession.endSession().catch(err => console.error('Session close failed:', err));
-    request.session.mongoSession = null;
+  if (request?.mongoSession) {
+    try {
+      await request.mongoSession.abortTransaction();
+    } catch (abortError) {
+      console.warn('Error aborting transaction:', abortError.message);
+    }
+    try {
+      await request.mongoSession.endSession();
+    } catch (endError) {
+      console.warn('Session already ended:', endError.message);
+    }
+    request.mongoSession = null; // Clear session
   }
+  
 
   if (error.name === 'CastError') {
     return response.status(400).json({ error: 'malformatted id' })
@@ -42,6 +51,10 @@ const errorHandler = (error, request, response, next) => {
   else if (error.name === 'JsonWebTokenError') {
     return response.status(401).json({ error: 'invalid token' })
   }
+  else if(error.cause?.title === 'UserError') {
+    return response.status( error.cause.code ).json({ error: error.message })
+  }
+  
   next(error)
 }
 
@@ -104,7 +117,7 @@ const productValidator = async (request, response, next) => {
     })
   }
 
-  if (request.user.type !== 'seller') {
+  if (request.user.type !== 'Seller') {
     return response.status(403).json({
       error: 'user must be a seller'
     })
@@ -134,7 +147,7 @@ const deliveryRequestValidator = async (request, response, next) => {
     })
   }
 
-  if (request.user.type !== 'seller') {
+  if (request.user.type !== 'Seller') {
     return response.status(403).json({
       error: 'user must be a seller'
     })
@@ -170,7 +183,7 @@ const deliveryOfferValidator = async (request, response, next) => {
     })
   }
 
-  if (request.user.type !== 'deliverer') {
+  if (request.user.type !== 'Deliverer') {
     return response.status(403).json({
       error: 'user must be a deliverer'
     })

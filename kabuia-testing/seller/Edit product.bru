@@ -1,0 +1,17 @@
+meta {
+  name: Edit product
+  type: http
+  seq: 8
+}
+
+put {
+  url: http://localhost:3000/api/products/6872abbdfe590f83b9f45884
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "price": 10
+  }
+}

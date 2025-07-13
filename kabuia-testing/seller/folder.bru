@@ -1,22 +1,12 @@
 meta {
-  name: create location
-  type: http
-  seq: 3
+  name: seller
+  seq: 7
 }
 
-post {
-  url: http://localhost:3000/api/locations
-  body: json
-  auth: bearer
+auth {
+  mode: bearer
 }
 
 auth:bearer {
   token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InJheWhlcm5hbmRlejAxNEBnbWFpbC5jb20iLCJpZCI6IjY4NjFlZjUyNTBkZGM2ZWI0ODg1NmJlMCIsImlhdCI6MTc1MTc3ODgyM30.09rHo8MmdJdrVqs5nuoOKLKUA-dg6Ze_qeZnetj-TyI
-}
-
-body:json {
-  {
-    "latitude": 19.46891162089313,
-    "longitude": -70.7009829189786
-  }
 }

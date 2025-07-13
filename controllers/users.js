@@ -118,7 +118,7 @@ usersRouter.delete( '/:id', userExtractor, userValidator, async (request, respon
 usersRouter.put('/update/:id', userExtractor, userValidator, async (request, response) => {
   const { firstname, lastname, photo, stripeID, locations, shoppingCart } = request.body
 
-  if(request.user.type === 'buyer'){
+  if(request.user.type === 'Buyer'){
     const receivedBuyer = {
       firstname: firstname,
       lastname: lastname,
@@ -136,7 +136,7 @@ usersRouter.put('/update/:id', userExtractor, userValidator, async (request, res
 
     response.json(updatedBuyer)
   }
-  else if (request.user.type === 'seller'){
+  else if (request.user.type === 'Seller'){
     const receivedSeller = {
       firstname: firstname,
       lastname: lastname,
@@ -153,7 +153,7 @@ usersRouter.put('/update/:id', userExtractor, userValidator, async (request, res
 
     response.json(updatedSeller)
   }
-  else if (request.user.type === 'deliverer'){
+  else if (request.user.type === 'Deliverer'){
     const receivedDeliverer = {
       firstname: firstname,
       lastname: lastname,

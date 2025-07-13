@@ -24,7 +24,7 @@ const deliveryRequestSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: function (value) {
-        return value instanceof Date && !isNaN(value.getTime()) && value > new Date();
+        return value instanceof Date && !isNaN(value.getTime()) && value > new Date()
       },
       message: 'invalid date'
     }

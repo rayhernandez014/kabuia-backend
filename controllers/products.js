@@ -1,6 +1,6 @@
 const productsRouter = require('express').Router()
 const Product = require('../models/product')
-const { userExtractor, productValidator } = require('../utils/middleware')
+const { userExtractor, productValidator, roleValidator } = require('../utils/middleware')
 const Seller = require('../models/seller')
 
 productsRouter.get('/', async (request, response) => {
@@ -8,8 +8,8 @@ productsRouter.get('/', async (request, response) => {
   response.json(products)
 })
 
-productsRouter.post('/', userExtractor, roleValidator(['seller']), async (request, response) => {
-  const { name, price, unit, quantity, description, photo } = request.body
+productsRouter.post('/', userExtractor, roleValidator(['Seller']), async (request, response) => {
+  const { name, price, unit, stock, description, photo } = request.body
 
   const seller = request.user
 
@@ -17,7 +17,7 @@ productsRouter.post('/', userExtractor, roleValidator(['seller']), async (reques
     name: name, 
     price: price, 
     unit: unit, 
-    quantity: quantity, 
+    stock: stock, 
     description: description, 
     photo: photo,
     seller: seller._id
@@ -48,13 +48,13 @@ productsRouter.delete( '/:id', userExtractor, productValidator, async (request, 
 })
 
 productsRouter.put('/:id', userExtractor, productValidator, async (request, response) => {
-  const { name, price, unit, quantity, description, photo } = request.body
+  const { name, price, unit, stock, description, photo } = request.body
 
   const receivedProduct = {
     name: name, 
     price: price, 
     unit: unit, 
-    quantity: quantity, 
+    stock: stock, 
     description: description, 
     photo: photo,
   }

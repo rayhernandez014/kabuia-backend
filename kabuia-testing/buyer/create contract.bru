@@ -1,0 +1,20 @@
+meta {
+  name: create contract
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://localhost:3000/api/contracts
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "sellerId": "6861ef5250ddc6eb48856be0",
+    "expectedReadyDate": 1753324581000,
+    "contractType": "ContractWithPickup",
+    "pickupLocation": "686a0b153a70f9dae2e6d734"
+  }
+}

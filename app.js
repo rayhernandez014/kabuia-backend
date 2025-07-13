@@ -10,6 +10,8 @@ const logoutRouter = require('./controllers/logout')
 const forgotPassword = require('./controllers/forgotPassword')
 const verifyUser = require('./controllers/verifyUser')
 const locations = require('./controllers/locations')
+const products = require('./controllers/products')
+const contracts = require('./controllers/contracts')
 const middleware = require('./utils/middleware')
 const logger = require('./utils/logger')
 
@@ -35,16 +37,10 @@ app.use('/api/logout', logoutRouter)
 app.use('/api/forgot-password', forgotPassword)
 app.use('/api/verify-user', verifyUser)
 app.use('/api/locations', locations)
+app.use('/api/products', products)
+app.use('/api/contracts', contracts)
 
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)
 
-process.on('SIGINT', async () => {
-  await mongoose.connection.close();
-  console.log('Mongoose connection closed gracefully')
-
-  await config.redisClient.quit()
-  console.log('Redis connection closed gracefully')
-})
-
-module.exports = app
+module.exports = {app, mongoose}

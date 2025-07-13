@@ -1,0 +1,18 @@
+meta {
+  name: create location
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:3000/api/locations
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "latitude": 19.451029109646832,
+    "longitude": -70.70036945430303
+  }
+}

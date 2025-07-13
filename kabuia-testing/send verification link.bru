@@ -1,17 +1,17 @@
 meta {
   name: send verification link
   type: http
-  seq: 5
+  seq: 4
 }
 
 post {
   url: http://localhost:3000/api/verify-user
   body: json
-  auth: inherit
+  auth: none
 }
 
 body:json {
   {
-    "email": "rayhernandez014@gmail.com"
+    "email": "isbethrodriguez118@gmail.com"
   }
 }

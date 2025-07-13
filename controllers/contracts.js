@@ -13,40 +13,34 @@ contractRouter.get('/', userExtractor, async (request, response) => {
   response.json(contracts)
 })
 
-contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request, response) => {
+contractRouter.post('/', userExtractor, roleValidator(['Buyer']), async (request, response) => {
   const { sellerId, expectedReadyDate, contractType, pickupLocation, deliveryLocation } = request.body
   
   const session = await mongoose.startSession()
-  request.session.mongoSession = session
   session.startTransaction()
+  request.mongoSession = session
 
-  const seller = await Seller.findById({id: sellerId}).session(session).exec()
+  const seller = await Seller.findById(sellerId).session(session).exec()
 
   if (!seller) {
-    await session.abortTransaction();
-    session.endSession();
-    return response.status(403).json({
-      error: 'seller is invalid'
-    })
+    throw new Error('seller is invalid', { cause: { title: 'UserError', code: 403} })
   }
 
   const buyer = request.user
 
   //verifying availability
 
-  buyer.shoppingCart.items.forEach( async (item, idx) => {
-    const product = await Product.findById({id: item}).session(session).exec()
-    if(!product || product?.stock < buyer.shoppingCart.quantities[idx]){
-      await session.abortTransaction();
-      session.endSession();
-      return response.status(400).json({
-        error: 'this product is out of stock or does not exist',
-        productId: item
-      })
-    }
-  })
+  const priceList = []
 
-  const orderTotal = buyer.shoppingCart.items.reduce((accumulator, currentValue, idx) => accumulator + (currentValue * buyer.shoppingCart.quantities[idx]), 0)
+  for( const [idx, item] of buyer.shoppingCart.items.entries()){
+    const product = await Product.findById(item).session(session).exec()
+    if(!product || product?.stock < buyer.shoppingCart.quantities[idx]){
+      throw new Error(`this product is out of stock or does not exist: ${item.toString()}`, { cause: { title: 'UserError', code: 400} })
+    }
+    priceList.push(product.price)
+  }
+
+  const orderTotal = priceList.reduce((accumulator, currentValue, idx) => accumulator + (currentValue * buyer.shoppingCart.quantities[idx]), 0)
 
   const order = {
     ...buyer.shoppingCart,
@@ -58,12 +52,10 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
   if(contractType === 'ContractWithPickup'){
 
     if(!seller.locations.includes(pickupLocation)){
-      await session.abortTransaction();
-      session.endSession();
-      return response.status(400).json({
-        error: 'this location is not valid'
-      })
+      throw new Error('this location is not valid', { cause: { title: 'UserError', code: 400} })
     }
+
+    console.log(expectedReadyDate)
 
     contract = new ContractWithPickup({
       buyer: buyer._id,
@@ -73,7 +65,7 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
         status: 'placed',
         timestamp: new Date()
       },
-      expectedReadyDate: expectedReadyDate,
+      expectedReadyDate: new Date(expectedReadyDate),
       pickupLocation: pickupLocation
     })
   }
@@ -81,11 +73,7 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
   else if(contractType === 'ContractWithDelivery'){
 
     if(!buyer.locations.includes(deliveryLocation)){
-      await session.abortTransaction();
-      session.endSession();
-      return response.status(400).json({
-        error: 'this location is not valid'
-      })
+      throw new Error('this location is not valid', { cause: { title: 'UserError', code: 400} })
     }
 
     contract = new ContractWithDelivery({
@@ -96,31 +84,26 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
         status: 'placed',
         timestamp: new Date()
       },
-      expectedReadyDate: expectedReadyDate,
+      expectedReadyDate: new Date(expectedReadyDate),
       deliveryLocation: deliveryLocation
     })
   }
 
   if(!contract){
-    await session.abortTransaction();
-    session.endSession();
-    return response.status(400).json({
-      error: 'contract type is invalid'
-    })
+    throw new Error('contract type is invalid', { cause: { title: 'UserError', code: 400} })
   }
 
   //paying
-
-  buyer.shoppingCart.items.forEach( async (item, idx) => {
+  for( const [idx, item] of buyer.shoppingCart.items.entries()){
     await Product.findByIdAndUpdate(item, { $inc: { stock: -buyer.shoppingCart.quantities[idx] } }, {
       new: true,
       runValidators: true,
       context: 'query'
     }).session(session).exec()
-  })
+  }
 
   const savedContract = await contract.save({ session })
-  
+
   buyer.shoppingCart = {
     items: [],
     quantities: []
@@ -130,7 +113,7 @@ contractRouter.post('/', userExtractor, roleValidator(['buyer']), async (request
 
   await session.commitTransaction()
   session.endSession()
-  request.session.mongoSession = null
+  request.mongoSession = null
 
   response.status(201).json({savedContract})
 
@@ -197,38 +180,38 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
     placed: [
       {
         to: 'preparing',
-        by: ['seller'],
+        by: ['Seller'],
         orderTypes: ['ContractWithDelivery', 'ContractWithPickup']
       },
       {
         to: 'canceled',
-        by: ['seller', 'buyer'],
+        by: ['Seller', 'Buyer'],
         orderTypes: ['ContractWithDelivery', 'ContractWithPickup']
       }
     ],
     preparing: [
       {
         to: 'ready',
-        by: ['seller'],
+        by: ['Seller'],
         orderTypes: ['ContractWithDelivery', 'ContractWithPickup']
       },
     ],
     ready: [
       {
         to: 'delivering',
-        by: ['deliverer'],
+        by: ['Deliverer'],
         orderTypes: ['ContractWithDelivery']
       },
       {
         to: 'picked-up',
-        by: ['buyer'],
+        by: ['Buyer'],
         orderTypes: ['ContractWithPickup']
       },
     ],
     delivering: [
       {
         to: 'delivered',
-        by: ['buyer'],
+        by: ['Buyer'],
         orderTypes: ['ContractWithDelivery']
       },
     ]
@@ -256,23 +239,23 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
 
   //for delivering and picking up, apply payments to seller and deliverer (in contracts with delivering)
 
-  let updatedContract;
+  let updatedContract
 
   if(newStatus === 'canceled'){
 
     const session = await mongoose.startSession()
-    request.session.mongoSession = session
+    request.mongoSession = session
     session.startTransaction()
 
     const buyer = await Buyer.findById( request.contract.buyer ).session(session).exec()
 
-    buyer.shoppingCart.items.forEach( async (item, idx) => {
+    for( const [idx, item] of buyer.shoppingCart.items.entries()){
       await Product.findByIdAndUpdate(item, { $inc: { stock: +buyer.shoppingCart.quantities[idx] } }, {
         new: true,
         runValidators: true,
         context: 'query'
       }).session(session).exec()
-    })
+    }
 
     updatedContract = await Contract.findByIdAndUpdate(request.params.id, {
       $push: { history: {
@@ -288,7 +271,7 @@ contractRouter.put('/updateStatus/:id', userExtractor, contractValidator, async 
 
     await session.commitTransaction()
     session.endSession()
-    request.session.mongoSession = null
+    request.mongoSession = null
 
   }
   else{

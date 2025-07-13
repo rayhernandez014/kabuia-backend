@@ -14,10 +14,10 @@ deliveryOffersRouter.get('/:deliveryRequest', async (request, response) => {
   response.json(deliveryOffers)
 })
 
-deliveryOffersRouter.post('/', userExtractor, roleValidator(['deliverer']), async (request, response) => {
+deliveryOffersRouter.post('/', userExtractor, roleValidator(['Deliverer']), async (request, response) => {
   const { price, deliveryRequestId } = request.body
 
-  const deliveryRequest = await DeliveryRequest.findById({id: deliveryRequestId}).exec()
+  const deliveryRequest = await DeliveryRequest.findById(deliveryRequestId).exec()
   
   if (!deliveryRequest) {
     return response.status(400).json({
@@ -71,7 +71,7 @@ deliveryOffersRouter.put('/acceptDelivery/:id', userExtractor, deliveryOfferVali
 
 
   const session = await mongoose.startSession()
-  request.session.mongoSession = session
+  request.mongoSession = session
   session.startTransaction()
 
   const deliveryOffer = request.deliveryOffer.status = 'accepted'
@@ -100,7 +100,7 @@ deliveryOffersRouter.put('/acceptDelivery/:id', userExtractor, deliveryOfferVali
 
   await session.commitTransaction()
   session.endSession()
-  request.session.mongoSession = null
+  request.mongoSession = null
 
   //notify the seller
 
@@ -112,7 +112,7 @@ deliveryOffersRouter.put('/acceptDelivery/:id', userExtractor, deliveryOfferVali
 deliveryOffersRouter.put('/declineDelivery/:id', userExtractor, deliveryOfferValidator, async (request, response) => {
 
   const session = await mongoose.startSession()
-  request.session.mongoSession = session
+  request.mongoSession = session
   session.startTransaction()
 
   const deliveryOffer = request.deliveryOffer.status = 'declined'
@@ -147,7 +147,7 @@ deliveryOffersRouter.put('/declineDelivery/:id', userExtractor, deliveryOfferVal
 
   await session.commitTransaction()
   session.endSession()
-  request.session.mongoSession = null
+  request.mongoSession = null
 
   response.json(updatedDeliveryOffer)
 
