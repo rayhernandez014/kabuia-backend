@@ -5,12 +5,12 @@ meta {
 }
 
 put {
-  url: http://localhost:3000/api/users/verify?method=e&token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlzYmV0aHJvZHJpZ3VlejExOEBnbWFpbC5jb20iLCJwaG9uZSI6IjgwOTk2NzM5ODkiLCJpZCI6IjY4NzJiMmY2NjcyMDQzNjQ0Mzg4ZGMxYiIsImlhdCI6MTc1MjM0NzQ3NX0.Q21npvicGlNYWdhc8Aue8oYPmEc0OI0w8OEw6dQAOig
+  url: http://localhost:3000/api/users/verify?method=e&token={{process.env.VERIFICATION_TOKEN}}
   body: none
   auth: none
 }
 
 params:query {
   method: e
-  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImlzYmV0aHJvZHJpZ3VlejExOEBnbWFpbC5jb20iLCJwaG9uZSI6IjgwOTk2NzM5ODkiLCJpZCI6IjY4NzJiMmY2NjcyMDQzNjQ0Mzg4ZGMxYiIsImlhdCI6MTc1MjM0NzQ3NX0.Q21npvicGlNYWdhc8Aue8oYPmEc0OI0w8OEw6dQAOig
+  token: {{process.env.VERIFICATION_TOKEN}}
 }
