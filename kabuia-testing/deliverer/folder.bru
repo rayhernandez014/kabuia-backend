@@ -1,0 +1,12 @@
+meta {
+  name: deliverer
+  seq: 7
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{process.env.DELIVERER_TOKEN}}
+}

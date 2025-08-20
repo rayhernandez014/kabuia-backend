@@ -94,7 +94,7 @@ usersRouter.post('/', async (request, response) => {
       reviews: [],
       stripeID: stripeID ?? '',
       locations: locations,
-      deliveryRequests: [],
+      deliveryOffers: [],
     })
 
     const savedDeliverer = await deliverer.save()
@@ -116,7 +116,7 @@ usersRouter.delete( '/:id', userExtractor, userValidator, async (request, respon
 })
 
 usersRouter.put('/update/:id', userExtractor, userValidator, async (request, response) => {
-  const { firstname, lastname, photo, stripeID, locations, shoppingCart } = request.body
+  const { firstname, lastname, photo, stripeID, locations } = request.body
 
   if(request.user.type === 'Buyer'){
     const receivedBuyer = {
@@ -125,7 +125,6 @@ usersRouter.put('/update/:id', userExtractor, userValidator, async (request, res
       photo: photo,
       stripeID: stripeID,
       locations: locations,
-      shoppingCart: shoppingCart
     }
 
     const updatedBuyer = await Buyer.findByIdAndUpdate(request.params.id, receivedBuyer, {
@@ -173,6 +172,20 @@ usersRouter.put('/update/:id', userExtractor, userValidator, async (request, res
   else{
     return response.status(400).json({ error: 'Invalid user type' })
   }
+
+})
+
+
+usersRouter.put('/shoppingCart/:id', userExtractor, userValidator, async (request, response) => {
+  const { shoppingCart } = request.body
+
+  const buyer = request.user
+
+  buyer.shoppingCart = shoppingCart
+
+  const updatedBuyer = await buyer.save()
+  
+  response.json(updatedBuyer.shoppingCart)
 
 })
 

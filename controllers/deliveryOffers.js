@@ -1,6 +1,6 @@
 const deliveryOffersRouter = require('express').Router()
 const DeliveryOffer = require('../models/deliveryOffer')
-const { userExtractor, deliveryOfferValidator } = require('../utils/middleware')
+const { userExtractor, deliveryOfferValidator, roleValidator } = require('../utils/middleware')
 const Deliverer = require('../models/deliverer')
 const DeliveryRequest = require('../models/deliveryRequest')
 const mongoose = require('mongoose')

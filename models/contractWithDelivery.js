@@ -8,7 +8,7 @@ const ContractWithDelivery = Contract.discriminator('ContractWithDelivery', new 
     ref: 'Deliverer',
     required: [
       function() {
-        return this.statusHistory[3] === 'delivering'
+        return this.history[3] === 'delivering'
       },
       'deliverer is required before delivering the order'
     ],
@@ -18,7 +18,7 @@ const ContractWithDelivery = Contract.discriminator('ContractWithDelivery', new 
     ref: 'DeliveryRequest',
     required: [
       function() {
-        return this.statusHistory[3] === 'delivering'
+        return this.history[3] === 'delivering'
       },
       'delivery request is required before delivering the order'
     ],
@@ -28,7 +28,7 @@ const ContractWithDelivery = Contract.discriminator('ContractWithDelivery', new 
     ref: 'DeliveryOffer',
     required: [
       function() {
-        return this.statusHistory[3] === 'delivering'
+        return this.history[3] === 'delivering'
       },
       'delivery offer is required before delivering the order'
     ],

@@ -24,7 +24,7 @@ const contractSchema = new mongoose.Schema({
       required: true
     },
     total: {
-      type: [Number],
+      type: Number,
       required: true
     }
   },
@@ -60,7 +60,7 @@ const contractSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: function (value) {
-        return value instanceof Date && !isNaN(value.getTime()) && value > new Date()
+        return value instanceof Date && !isNaN(value.getTime())
       },
       message: 'invalid date'
     }

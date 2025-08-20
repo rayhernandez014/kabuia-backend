@@ -1,0 +1,20 @@
+meta {
+  name: create review seller
+  type: http
+  seq: 5
+}
+
+post {
+  url: http://localhost:3000/api/reviews
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "grade": "2",
+    "description": "La joven se enojo porque no le quise dar un besito, no le crean",
+    "recipient": "6872b2f6672043644388dc1b",
+    "contract": "6873c80ba720d27d730af4fb"
+  }
+}

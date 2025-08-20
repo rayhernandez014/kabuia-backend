@@ -27,7 +27,17 @@ const reviewSchema = new mongoose.Schema({
     ref: 'Contract',
     required: true
   },
-  editHistory: [{
+  timestamp: {
+    type: Date,
+    required: true,
+    validate: {
+      validator: function (v) {        
+        return v instanceof Date && !isNaN(v.getTime())
+      },
+      message: props => 'timestamp is invalid'
+    }
+  },
+  history: [{
     grade: {
       type: Number,
       required: true,
@@ -38,6 +48,16 @@ const reviewSchema = new mongoose.Schema({
       type: String,
       required: true,
       minLength: 10
+    },
+    timestamp: {
+      type: Date,
+      required: true,
+      validate: {
+        validator: function (v) {        
+          return v instanceof Date && !isNaN(v.getTime())
+        },
+        message: props => 'timestamp is invalid'
+      }
     },
   }]
 })

@@ -245,6 +245,14 @@ const reviewValidator = async (request, response, next) => {
 
   request.review = review
 
+  const loggedUser = request.user
+
+  if(review.author.toString() !== loggedUser._id.toString()){
+    return response.status(403).json({
+        error: 'you are not authorized to perform this action'
+    })
+  }
+
   next()
 
 }

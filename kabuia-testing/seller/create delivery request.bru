@@ -1,0 +1,20 @@
+meta {
+  name: create delivery request
+  type: http
+  seq: 7
+}
+
+post {
+  url: http://localhost:3000/api/delivery-requests
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "title": "entrega en santiago",
+    "origin": "686a0b153a70f9dae2e6d734",
+    "date": 1756156159000,
+    "contractId": "6881765325ba81ecfb13a851"
+  }
+}

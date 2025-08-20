@@ -28,6 +28,10 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
 
   const buyer = request.user
 
+  if (buyer.shoppingCart.items.length === 0) {
+    throw new Error('shopping cart is empty', { cause: { title: 'UserError', code: 400} })
+  }
+
   //verifying availability
 
   const priceList = []
@@ -59,7 +63,7 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
 
     contract = new ContractWithPickup({
       buyer: buyer._id,
-      seller: seller, 
+      seller: seller._id, 
       order: order, 
       history: {
         status: 'placed',
@@ -78,8 +82,8 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
 
     contract = new ContractWithDelivery({
       buyer: buyer._id,
-      seller: seller, 
-      products: order,
+      seller: seller._id, 
+      order: order,
       history: {
         status: 'placed',
         timestamp: new Date()
@@ -141,7 +145,7 @@ productsRouter.delete( '/:id', userExtractor, productValidator, async (request, 
 contractsRouter.put('/updateDetails/:id', userExtractor, contractValidator, async (request, response) => {
   const { products, expectedReadyDate } = request.body
 
-  const statusHistory = request.contract.statusHistory
+  const history = request.contract.history
 
   if (request.user.type !== 'buyer') {
     return response.status(403).json({
@@ -149,7 +153,7 @@ contractsRouter.put('/updateDetails/:id', userExtractor, contractValidator, asyn
     })
   }
 
-  if(statusHistory.length !== 1 || statusHistory[0] !== 'placed'){
+  if(history.length !== 1 || history[0] !== 'placed'){
     return response.status(400).json({
       error: 'the order is already being prepared'
     })

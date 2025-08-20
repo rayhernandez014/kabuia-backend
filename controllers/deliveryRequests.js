@@ -1,10 +1,11 @@
 const deliveryRequestsRouter = require('express').Router()
 const DeliveryRequest = require('../models/deliveryRequest')
-const { userExtractor, deliveryRequestValidator } = require('../utils/middleware')
+const { userExtractor, deliveryRequestValidator, roleValidator } = require('../utils/middleware')
 const Seller = require('../models/seller')
 const ContractWithDelivery = require('../models/contractWithDelivery')
 const mongoose = require('mongoose')
 const DeliveryOffer = require('../models/deliveryOffer')
+const Contract = require('../models/contract')
 
 deliveryRequestsRouter.get('/:date/:origin/:destination', async (request, response) => {
 
@@ -15,18 +16,32 @@ deliveryRequestsRouter.get('/:date/:origin/:destination', async (request, respon
 })
 
 deliveryRequestsRouter.post('/', userExtractor, roleValidator(['Seller']), async (request, response) => {
-  const { title, description, origin, destination, date, contract } = request.body
+  const { title, description, origin, date, contractId } = request.body
 
   const seller = request.user
+
+  const contract = await Contract.findById(contractId).exec()
+  
+  if(!contract || contract.type !== 'ContractWithDelivery' || contract.deliveryRequest){
+    return response.status(400).json({
+        error: 'invalid contract'
+    })
+  }
+  
+  if(!seller.locations.includes(origin)){
+    return response.status(400).json({
+        error: 'this origin location is not valid'
+    })
+  }
 
   const deliveryRequest = new DeliveryRequest({
     title: title, 
     description: description, 
     origin: origin, 
-    destination: destination,
+    destination: contract.deliveryLocation,
     date: new Date(date),
     seller: seller._id,
-    contract: contract,
+    contract: contract._id,
     deliveryOffers: []
   })
   
@@ -36,15 +51,9 @@ deliveryRequestsRouter.post('/', userExtractor, roleValidator(['Seller']), async
 
   const updatedSeller = await seller.save()
 
-  const contractData = {
-    deliveryRequest: savedDeliveryRequest._id
-  }
+  contract.deliveryRequest = savedDeliveryRequest._id
 
-  await ContractWithDelivery.findByIdAndUpdate(contract, contractData, {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).exec()
+  await contract.save()
 
   response.status(201).json({savedDeliveryRequest, updatedSeller})
 
@@ -70,13 +79,12 @@ deliveryRequestsRouter.delete( '/:id', userExtractor, deliveryRequestValidator, 
 */
 
 deliveryRequestsRouter.put('/update/:id', userExtractor, deliveryRequestValidator, async (request, response) => {
-  const { title, description, date, origin, destination } = request.body
+  const { title, description, date, origin } = request.body
 
   const receivedDeliveryRequest = {
     title: title, 
     description: description, 
     origin: origin, 
-    destination: destination,
     date: new Date(date),
   }
 

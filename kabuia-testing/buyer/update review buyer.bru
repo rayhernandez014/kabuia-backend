@@ -1,0 +1,18 @@
+meta {
+  name: update review buyer
+  type: http
+  seq: 7
+}
+
+put {
+  url: http://localhost:3000/api/reviews/687ff509a640fdddf8c3df4e
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "grade": "5",
+    "description": "guaaay me invito a sali ei maivao. Oividen to mi gente eso era relajando <3"
+  }
+}
