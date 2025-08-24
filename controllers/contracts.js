@@ -59,8 +59,6 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
       throw new Error('this location is not valid', { cause: { title: 'UserError', code: 400} })
     }
 
-    console.log(expectedReadyDate)
-
     contract = new ContractWithPickup({
       buyer: buyer._id,
       seller: seller._id, 
@@ -91,6 +89,7 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
       expectedReadyDate: new Date(expectedReadyDate),
       deliveryLocation: deliveryLocation
     })
+
   }
 
   if(!contract){
@@ -118,7 +117,7 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
   await session.commitTransaction()
   session.endSession()
   request.mongoSession = null
-
+  
   response.status(201).json({savedContract})
 
 })
@@ -175,7 +174,7 @@ contractsRouter.put('/updateDetails/:id', userExtractor, contractValidator, asyn
 })
 */
 
-contractsRouter.put('/updateStatus/:id', userExtractor, contractValidator, async (request, response) => {
+contractsRouter.put('/update-status/:id', userExtractor, contractValidator, async (request, response) => {
   const { newStatus } = request.body
 
   const history = request.contract.history

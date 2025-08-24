@@ -22,12 +22,6 @@ const deliveryRequestSchema = new mongoose.Schema({
   date: {
     type: Date,
     required: true,
-    validate: {
-      validator: function (value) {
-        return value instanceof Date && !isNaN(value.getTime())
-      },
-      message: 'invalid date'
-    }
   },
   seller: {
     type: mongoose.Schema.Types.ObjectId,
@@ -53,6 +47,20 @@ const deliveryRequestSchema = new mongoose.Schema({
     ref: 'Contract',
     required: true
   },
+})
+
+deliveryRequestSchema.pre('save', function (next) {
+  if (this.isNew) {
+    if(this.date){
+      const isDate = this.date instanceof Date
+      const isValidDate = !isNaN(this.date.getTime())
+      const isFutureDate = this.date > new Date()
+      if(!isDate || !isValidDate || !isFutureDate){
+        return next(new Error('invalidDateError: date must be a valid date in the future'));
+      }
+    }
+  }
+  next()
 })
 
 deliveryRequestSchema.set('toJSON', {

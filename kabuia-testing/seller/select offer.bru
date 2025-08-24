@@ -1,0 +1,17 @@
+meta {
+  name: select offer
+  type: http
+  seq: 8
+}
+
+put {
+  url: http://localhost:3000/api/delivery-requests/select-offer/68aa9b925e0a414ac379b7f4
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "selectedDeliveryOffer": "68aa9cf779e2590c5362cb4d"
+  }
+}

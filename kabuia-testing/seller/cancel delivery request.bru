@@ -1,0 +1,11 @@
+meta {
+  name: cancel delivery request
+  type: http
+  seq: 9
+}
+
+put {
+  url: http://localhost:3000/api/delivery-requests/cancel/68aaa27cea07949ae76fc08d
+  body: json
+  auth: inherit
+}

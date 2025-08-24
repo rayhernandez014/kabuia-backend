@@ -58,14 +58,22 @@ const contractSchema = new mongoose.Schema({
   expectedReadyDate: {
     type: Date,
     required: true,
-    validate: {
-      validator: function (value) {
-        return value instanceof Date && !isNaN(value.getTime())
-      },
-      message: 'invalid date'
-    }
   },
 }, options)
+
+contractSchema.pre('save', function (next) {
+  if (this.isNew) {
+    if(this.expectedReadyDate){
+      const isDate = this.expectedReadyDate instanceof Date
+      const isValidDate = !isNaN(this.expectedReadyDate.getTime())
+      const isFutureDate = this.expectedReadyDate > new Date()
+      if(!isDate || !isValidDate || !isFutureDate){
+        return next(new Error('invalidDateError: expectedReadyDate must be a valid date in the future'));
+      }
+    }
+  }
+  next()
+})
 
 contractSchema.set('toJSON', {
   transform: (document, returnedObject) => {

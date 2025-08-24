@@ -54,6 +54,9 @@ const errorHandler = async (error, request, response, next) => {
   else if(error.cause?.title === 'UserError') {
     return response.status( error.cause.code ).json({ error: error.message })
   }
+  else if(error.message.includes('invalidDateError')) {
+    return response.status( 400 ).json({ error: error.message })
+  }
   
   next(error)
 }
@@ -153,7 +156,7 @@ const deliveryRequestValidator = async (request, response, next) => {
     })
   }
 
-  if(deliveryRequest.status === 'offer_selected'){
+  if(['offer_selected', 'offer_accepted', 'canceled'].includes(deliveryRequest.status)){
     return response.status(404).json({
         error: 'this action cannot be performed'
     })

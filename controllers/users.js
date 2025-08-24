@@ -176,7 +176,7 @@ usersRouter.put('/update/:id', userExtractor, userValidator, async (request, res
 })
 
 
-usersRouter.put('/shoppingCart/:id', userExtractor, userValidator, async (request, response) => {
+usersRouter.put('/shopping-cart/:id', userExtractor, userValidator, async (request, response) => {
   const { shoppingCart } = request.body
 
   const buyer = request.user

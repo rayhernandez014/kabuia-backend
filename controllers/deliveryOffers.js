@@ -1,7 +1,6 @@
 const deliveryOffersRouter = require('express').Router()
 const DeliveryOffer = require('../models/deliveryOffer')
 const { userExtractor, deliveryOfferValidator, roleValidator } = require('../utils/middleware')
-const Deliverer = require('../models/deliverer')
 const DeliveryRequest = require('../models/deliveryRequest')
 const mongoose = require('mongoose')
 const ContractWithDelivery = require('../models/contractWithDelivery')
@@ -22,6 +21,12 @@ deliveryOffersRouter.post('/', userExtractor, roleValidator(['Deliverer']), asyn
   if (!deliveryRequest) {
     return response.status(400).json({
       error: 'the delivery request is invalid'
+    })
+  }
+
+  if(deliveryRequest.status !== 'awaiting_offers'){
+    return response.status(400).json({
+      error: 'no more offers accepted'
     })
   }
 
@@ -67,14 +72,15 @@ deliveryOffersRouter.delete( '/:id', userExtractor, deliveryOfferValidator, asyn
 })
 */
 
-deliveryOffersRouter.put('/acceptDelivery/:id', userExtractor, deliveryOfferValidator, async (request, response) => {
-
+deliveryOffersRouter.put('/accept-delivery/:id', userExtractor, deliveryOfferValidator, async (request, response) => {
 
   const session = await mongoose.startSession()
   request.mongoSession = session
   session.startTransaction()
 
-  const deliveryOffer = request.deliveryOffer.status = 'accepted'
+  const deliveryOffer = request.deliveryOffer
+
+  deliveryOffer.status = 'accepted'
 
   const updatedDeliveryOffer = await deliveryOffer.save({ session })
 
@@ -89,6 +95,7 @@ deliveryOffersRouter.put('/acceptDelivery/:id', userExtractor, deliveryOfferVali
   }).session(session).exec()
 
   const receivedContract = {
+    deliverer: updatedDeliveryOffer.deliverer,
     deliveryOffer: request.params.id
   }
 
@@ -109,18 +116,19 @@ deliveryOffersRouter.put('/acceptDelivery/:id', userExtractor, deliveryOfferVali
 })
 
 
-deliveryOffersRouter.put('/declineDelivery/:id', userExtractor, deliveryOfferValidator, async (request, response) => {
+deliveryOffersRouter.put('/decline-delivery/:id', userExtractor, deliveryOfferValidator, async (request, response) => {
 
   const session = await mongoose.startSession()
   request.mongoSession = session
   session.startTransaction()
 
-  const deliveryOffer = request.deliveryOffer.status = 'declined'
+  const deliveryOffer = request.deliveryOffer
+
+  deliveryOffer.status = 'declined'
 
   const updatedDeliveryOffer = await deliveryOffer.save({ session })
 
   const nextBestOffer = await DeliveryOffer.findOne({
-    _id: request.params.id,
     status: 'rejected',
   }).sort('price').session(session).exec() //this could be limited to recent bids only, using "createdAt" mongoDB field
 
