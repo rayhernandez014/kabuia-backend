@@ -7,6 +7,7 @@ const ContractWithDelivery = require('../models/contractWithDelivery')
 const Seller = require('../models/seller')
 const Product = require('../models/product')
 const mongoose = require('mongoose')
+const { createInvoice } = require('../utils/invoices')
 
 contractsRouter.get('/', userExtractor, async (request, response) => {
   const contracts = await Contract.find({ $or: [{buyer: request.user}, {seller: request.user}, {deliverer: request.user}]}).exec()
@@ -96,16 +97,23 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
     throw new Error('contract type is invalid', { cause: { title: 'UserError', code: 400} })
   }
 
-  //paying
   for( const [idx, item] of buyer.shoppingCart.items.entries()){
-    await Product.findByIdAndUpdate(item, { $inc: { stock: (buyer.shoppingCart.quantities[idx] * -1) } }, {
+    await Product.findByIdAndUpdate(item, { $inc: { stock: (buyer.shoppingCart.quantities[idx] * -1), reservedStock: (buyer.shoppingCart.quantities[idx]) } }, {
       new: true,
       runValidators: true,
       context: 'query'
     }).session(session).exec()
   }
-
+ 
   const savedContract = await contract.save({ session })
+
+  //invoice creation 
+
+  const invoice = await createInvoice(order.total)
+
+  savedContract.invoice = invoice.id
+
+  const updatedContract = await savedContract.save({ session })
 
   buyer.shoppingCart = {
     items: [],
@@ -118,7 +126,7 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
   session.endSession()
   request.mongoSession = null
   
-  response.status(201).json({savedContract})
+  response.status(201).json({updatedContract})
 
 })
 /*
@@ -182,15 +190,17 @@ contractsRouter.put('/update-status/:id', userExtractor, contractValidator, asyn
   const validTransitions = {
     placed: [
       {
-        to: 'preparing',
-        by: ['Seller'],
-        orderTypes: ['ContractWithDelivery', 'ContractWithPickup']
-      },
-      {
         to: 'canceled',
         by: ['Seller', 'Buyer'],
         orderTypes: ['ContractWithDelivery', 'ContractWithPickup']
       }
+    ],
+    paid: [
+      {
+        to: 'preparing',
+        by: ['Seller'],
+        orderTypes: ['ContractWithDelivery', 'ContractWithPickup']
+      },
     ],
     preparing: [
       {
@@ -251,7 +261,7 @@ contractsRouter.put('/update-status/:id', userExtractor, contractValidator, asyn
     session.startTransaction()
 
     for( const [idx, item] of request.contract.order.items.entries()){
-      await Product.findByIdAndUpdate(item, { $inc: { stock: request.contract.order.quantities[idx] } }, {
+      await Product.findByIdAndUpdate(item, { $inc: { stock: request.contract.order.quantities[idx], reservedStock: request.contract.order.quantities[idx] * -1 } }, {
         new: true,
         runValidators: true,
         context: 'query'

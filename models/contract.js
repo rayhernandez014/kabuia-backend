@@ -38,7 +38,7 @@ const contractSchema = new mongoose.Schema({
       required: true,
       validate: {
         validator: function (v) {
-          const standard = ['placed', 'preparing', 'ready', 'delivering', 'delivered', 'picked_up', 'canceled']
+          const standard = ['placed', 'paid', 'preparing', 'ready', 'delivering', 'delivered', 'picked_up', 'canceled']
           return standard.includes(v)
         },
         message: props => 'new contract status is invalid'
@@ -59,6 +59,12 @@ const contractSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  invoice: {
+    type: String
+  },
+  invoiceStatus: {
+    type: String
+  }
 }, options)
 
 contractSchema.pre('save', function (next) {

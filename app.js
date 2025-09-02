@@ -2,6 +2,7 @@ const express = require('express')
 const helmet = require('helmet')
 require('express-async-errors')
 const cors = require('cors')
+const bodyParser = require('body-parser')
 const config = require('./utils/config')
 const mongoose = require('mongoose')
 const usersRouter = require('./controllers/users')
@@ -15,8 +16,8 @@ const contracts = require('./controllers/contracts')
 const reviews = require('./controllers/reviews')
 const deliveryRequests = require('./controllers/deliveryRequests')
 const deliveryOffers = require('./controllers/deliveryOffers')
+const payments = require('./controllers/payments')
 const middleware = require('./utils/middleware')
-const logger = require('./utils/logger')
 
 const app = express()
 app.use(helmet())
@@ -26,6 +27,18 @@ mongoose.connect(config.MONGODB_URI)
 config.redisClient.connect()
 
 app.use(cors())
+
+//this is placed here and with that parser because this is not an ordinary api endpoint, it is used for the BTCpay server webhook.
+
+app.use('/api/payments', [
+  bodyParser.json({
+    verify: (request, response, buf) => {
+      request.rawBody = buf; // Store raw body as Buffer
+    }
+  }),
+  payments
+])
+
 app.use(express.json())
 
 app.use(middleware.requestLogger)

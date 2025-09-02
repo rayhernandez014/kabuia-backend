@@ -20,7 +20,11 @@ const productSchema = new mongoose.Schema({
   },
   stock: {
     type: Number,
-    required: true
+    required: true,
+  },
+  reservedStock: {
+    type: Number,
+    default: 0
   },
   seller: {
     type: mongoose.Schema.Types.ObjectId,
