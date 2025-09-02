@@ -108,8 +108,7 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
   const savedContract = await contract.save({ session })
 
   //invoice creation 
-
-  const invoice = await createInvoice(order.total)
+  const invoice = await createInvoice(order.total, savedContract._id)
 
   savedContract.invoice = invoice.id
 

@@ -34,9 +34,11 @@ paymentsRouter.post('/', async (request, response) => {
     request.mongoSession = session
     session.startTransaction()
 
-    const { invoiceId, type } = request.body;
+    const { invoiceId, type } = request.body
 
-    const contract = await Contract.findOne({invoiceId: invoiceId}).session(session).exec()
+    console.log(request.body)
+
+    const contract = await Contract.findOne({invoice: invoiceId}).session(session).exec()
 
     if(!contract){
       throw new Error('invalid invoice id', { cause: { title: 'UserError', code: 404} })
