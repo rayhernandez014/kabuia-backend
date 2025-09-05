@@ -1,9 +1,9 @@
 require('dotenv').config()
 const paymentsRouter = require('express').Router()
-const crypto = require('crypto');
-const Contract = require('../models/contract');
-const Product = require('../models/product');
-const mongoose = require('mongoose');
+const crypto = require('crypto')
+const Contract = require('../models/contract')
+const Product = require('../models/product')
+const mongoose = require('mongoose')
 
 //for successful validation, I need to use this body.parser just for this endpoint
 
@@ -44,32 +44,29 @@ paymentsRouter.post('/', async (request, response) => {
       throw new Error('invalid invoice id', { cause: { title: 'UserError', code: 404} })
     }
 
-    let newStatus;
+    const isDuplicatedStatus = (newStatus) => {
+      return contract.invoiceHistory.status.includes(newStatus)
+    }      
+
+    let newStatus
+    let newContractStatus
+
     switch (type) {
-      case 'InvoiceCreated':
-        newStatus = 'created';
-        await Contract.findByIdAndUpdate(contract._id, {
-          invoiceStatus: newStatus
-        } , {
-          new: true,
-          runValidators: true,
-          context: 'query'
-        }).session(session).exec()
-        break;
       case 'InvoiceReceivedPayment':
       case 'InvoiceProcessing':
-        newStatus = 'pending';
-        await Contract.findByIdAndUpdate(contract._id, {
-          invoiceStatus: newStatus
-        } , {
-          new: true,
-          runValidators: true,
-          context: 'query'
-        }).session(session).exec()
-        break;
+        newStatus = 'pending'
+        if(isDuplicatedStatus()){
+          console.warn(`duplicated event: ${type}`)
+          return
+        }
+        break
       case 'InvoiceSettled':
-      case 'InvoicePaymentSettled':
-        newStatus = 'settled';
+      case 'InvoicePaymentSettled':        
+        newStatus = 'settled'
+        if(isDuplicatedStatus()){
+          console.warn(`duplicated event: ${type}`)
+          return
+        }
         for( const [idx, item] of contract.order.items.entries()){
           await Product.findByIdAndUpdate(item, { $inc: { reservedStock: contract.order.quantities[idx] * -1 } }, {
             new: true,
@@ -77,23 +74,14 @@ paymentsRouter.post('/', async (request, response) => {
             context: 'query'
           }).session(session).exec()
         }
-
-        await Contract.findByIdAndUpdate(contract._id, {
-          $push: { history: {
-              status: 'paid',
-              timestamp: new Date()
-            } 
-          },
-          invoiceStatus: newStatus
-        } , {
-          new: true,
-          runValidators: true,
-          context: 'query'
-        }).session(session).exec()
-
-        break;
-      case 'InvoiceExpired':
-        newStatus = 'expired';
+        newContractStatus = 'paid'
+        break
+      case 'InvoiceExpired':        
+        newStatus = 'expired'
+        if(isDuplicatedStatus()){
+          console.warn(`duplicated event: ${type}`)
+          return
+        }
         for( const [idx, item] of contract.order.items.entries()){
           await Product.findByIdAndUpdate(item, { $inc: { stock: contract.order.quantities[idx], reservedStock: contract.order.quantities[idx] * -1 } }, {
             new: true,
@@ -101,16 +89,14 @@ paymentsRouter.post('/', async (request, response) => {
             context: 'query'
           }).session(session).exec()
         }
-        await Contract.findByIdAndUpdate(contract._id, {
-          invoiceStatus: newStatus
-        } , {
-          new: true,
-          runValidators: true,
-          context: 'query'
-        }).session(session).exec()
-        break;
-      case 'InvoiceInvalid':
-        newStatus = 'invalid';
+        newContractStatus = 'expired'
+        break
+      case 'InvoiceInvalid':        
+        newStatus = 'invalid'
+        if(isDuplicatedStatus()){
+          console.warn(`duplicated event: ${type}`)
+          return
+        }
         for( const [idx, item] of contract.order.items.entries()){
           await Product.findByIdAndUpdate(item, { $inc: { stock: contract.order.quantities[idx], reservedStock: contract.order.quantities[idx] * -1 } }, {
             new: true,
@@ -118,24 +104,30 @@ paymentsRouter.post('/', async (request, response) => {
             context: 'query'
           }).session(session).exec()
         }
-        await Contract.findByIdAndUpdate(contract._id, {
-          invoiceStatus: newStatus
-        } , {
-          new: true,
-          runValidators: true,
-          context: 'query'
-        }).session(session).exec()
-        break;
+        break
       default:
-        console.warn(`Unhandled webhook event type: ${type}`);
-        return; // Ignore unhandled events to avoid transaction failure
+        console.warn(`Unhandled webhook event type: ${type}`)
+        return // Ignore unhandled events to avoid transaction failure
     }
+
+    if(newContractStatus){
+      contract.history = [...contract.history, {
+        status: newContractStatus,
+          timestamp: new Date()
+      }]
+    }
+
+    contract.invoiceHistory = [...contract.invoiceHistory, {
+      invoice: invoiceId,
+      status: newStatus,
+      timestamp: new Date()
+    }]
+
+    contract.save({ session })
 
     await session.commitTransaction()
     session.endSession()
     request.mongoSession = null
-
-    // Your own processing code goes here. E.g. update your internal order id depending on the invoice payment status.
 
     response.status(200).send('Success: request body was signed')
   }

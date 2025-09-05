@@ -110,7 +110,11 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
   //invoice creation 
   const invoice = await createInvoice(order.total, savedContract._id)
 
-  savedContract.invoice = invoice.id
+  savedContract.invoiceHistory = [...contract.invoiceHistory, {
+    invoice: invoice.id,
+    status: 'created',
+    timestamp: new Date()
+  }]
 
   const updatedContract = await savedContract.save({ session })
 
@@ -297,6 +301,60 @@ contractsRouter.put('/update-status/:id', userExtractor, contractValidator, asyn
       context: 'query'
     }).exec()
   }
+
+  response.json(updatedContract)
+
+})
+
+contractsRouter.put('/re-invoice/:id', userExtractor, roleValidator(['Buyer']), async (request, response) => {
+  
+  const session = await mongoose.startSession()
+  session.startTransaction()
+  request.mongoSession = session
+
+  const contract = request.contract
+
+  //verifying availability
+
+  const priceList = []
+
+  for( const [idx, item] of contract.order.items.entries()){
+    const product = await Product.findById(item).session(session).exec()
+    if(!product || product?.stock < contract.order.quantities[idx]){
+      throw new Error(`this product is out of stock or does not exist: ${item.toString()}`, { cause: { title: 'UserError', code: 400} })
+    }
+    priceList.push(product.price)
+  }
+
+  const orderTotal = priceList.reduce((accumulator, currentValue, idx) => accumulator + (currentValue * contract.order.quantities[idx]), 0)
+
+  //invoice creation 
+  const invoice = await createInvoice(orderTotal, contract._id)
+
+  contract.order.total = orderTotal //prices can change in the meantime so we recalculate total price, save it and use it for the invoice
+  contract.invoiceHistory = [...contract.invoiceHistory, {
+    invoice: invoice.id,
+    status: 'created',
+    timestamp: new Date()
+  }]
+  contract.history = [...contract.history, {
+    status: 'placed',
+    timestamp: new Date()
+  }]
+
+  const updatedContract = await contract.save({ session })
+
+  for( const [idx, item] of updatedContract.order.items.entries()){
+    await Product.findByIdAndUpdate(item, { $inc: { stock: (updatedContract.order.quantities[idx] * -1), reservedStock: (updatedContract.order.quantities[idx]) } }, {
+      new: true,
+      runValidators: true,
+      context: 'query'
+    }).session(session).exec()
+  }
+
+  await session.commitTransaction()
+  session.endSession()
+  request.mongoSession = null
 
   response.json(updatedContract)
 
