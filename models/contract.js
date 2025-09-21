@@ -59,7 +59,7 @@ const contractSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  invoiceHistory: {
+  invoiceHistory: [{
     invoice: {
       type: String
     },
@@ -75,7 +75,7 @@ const contractSchema = new mongoose.Schema({
         message: props => 'new invoice event timestamp is invalid'
       }
     },
-  }
+  }]
 }, options)
 
 contractSchema.pre('save', function (next) {

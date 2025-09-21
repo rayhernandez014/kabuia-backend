@@ -306,13 +306,17 @@ contractsRouter.put('/update-status/:id', userExtractor, contractValidator, asyn
 
 })
 
-contractsRouter.put('/re-invoice/:id', userExtractor, roleValidator(['Buyer']), async (request, response) => {
+contractsRouter.put('/re-invoice/:id', userExtractor, roleValidator(['Buyer']), contractValidator, async (request, response) => {
   
   const session = await mongoose.startSession()
   session.startTransaction()
   request.mongoSession = session
 
   const contract = request.contract
+
+  if(contract.invoiceHistory.at(-1).status !== 'expired' || contract.history.at(-1).status !== 'expired'){
+    throw new Error('this invoice is not expired', { cause: { title: 'UserError', code: 400} })
+  }
 
   //verifying availability
 
