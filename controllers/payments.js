@@ -38,14 +38,21 @@ paymentsRouter.post('/', async (request, response) => {
 
     console.log(request.body)
 
-    const contract = await Contract.findOne({invoice: invoiceId}).session(session).exec()
+    const contract = await Contract.findOne({
+      $expr: {
+        $eq: [
+          { $arrayElemAt: ['$invoiceHistory.invoice', -1] }, 
+          invoiceId
+        ]
+      }
+    }).session(session).exec()
 
     if(!contract){
       throw new Error('invalid invoice id', { cause: { title: 'UserError', code: 404} })
     }
 
     const isDuplicatedStatus = (newStatus) => {
-      return contract.invoiceHistory.status.includes(newStatus)
+      return Boolean(contract.invoiceHistory.find((event)=>{ return ((event.status === newStatus) && (event.invoice === invoiceId)) }))
     }      
 
     let newStatus
@@ -55,17 +62,17 @@ paymentsRouter.post('/', async (request, response) => {
       case 'InvoiceReceivedPayment':
       case 'InvoiceProcessing':
         newStatus = 'pending'
-        if(isDuplicatedStatus()){
+        if(isDuplicatedStatus(newStatus)){
           console.warn(`duplicated event: ${type}`)
-          return
+          return response.status(200).send(`Warning: duplicated event: ${type}`)
         }
         break
       case 'InvoiceSettled':
       case 'InvoicePaymentSettled':        
         newStatus = 'settled'
-        if(isDuplicatedStatus()){
+        if(isDuplicatedStatus(newStatus)){
           console.warn(`duplicated event: ${type}`)
-          return
+          return response.status(200).send(`Warning: duplicated event: ${type}`)
         }
         for( const [idx, item] of contract.order.items.entries()){
           await Product.findByIdAndUpdate(item, { $inc: { reservedStock: contract.order.quantities[idx] * -1 } }, {
@@ -78,9 +85,9 @@ paymentsRouter.post('/', async (request, response) => {
         break
       case 'InvoiceExpired':        
         newStatus = 'expired'
-        if(isDuplicatedStatus()){
+        if(isDuplicatedStatus(newStatus)){
           console.warn(`duplicated event: ${type}`)
-          return
+          return response.status(200).send(`Warning: duplicated event: ${type}`)
         }
         for( const [idx, item] of contract.order.items.entries()){
           await Product.findByIdAndUpdate(item, { $inc: { stock: contract.order.quantities[idx], reservedStock: contract.order.quantities[idx] * -1 } }, {
@@ -93,9 +100,9 @@ paymentsRouter.post('/', async (request, response) => {
         break
       case 'InvoiceInvalid':        
         newStatus = 'invalid'
-        if(isDuplicatedStatus()){
+        if(isDuplicatedStatus(newStatus)){
           console.warn(`duplicated event: ${type}`)
-          return
+          return response.status(200).send(`Warning: duplicated event: ${type}`)
         }
         for( const [idx, item] of contract.order.items.entries()){
           await Product.findByIdAndUpdate(item, { $inc: { stock: contract.order.quantities[idx], reservedStock: contract.order.quantities[idx] * -1 } }, {
@@ -107,8 +114,8 @@ paymentsRouter.post('/', async (request, response) => {
         break
       default:
         console.warn(`Unhandled webhook event type: ${type}`)
-        return // Ignore unhandled events to avoid transaction failure
-    }
+        return response.status(200).send(`Warning: Unhandled webhook event type: ${type}`)
+      }
 
     if(newContractStatus){
       contract.history = [...contract.history, {
@@ -123,7 +130,7 @@ paymentsRouter.post('/', async (request, response) => {
       timestamp: new Date()
     }]
 
-    contract.save({ session })
+    await contract.save({ session })
 
     await session.commitTransaction()
     session.endSession()
