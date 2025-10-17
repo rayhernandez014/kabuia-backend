@@ -11,7 +11,7 @@ const createInvoice = async (amount, contract) => {
       'Authorization': `token ${process.env.BTCPS_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    timeout: 5000
+    timeout: 10000
   })
 
   const invoiceData = {
