@@ -142,7 +142,7 @@ const productValidator = async (request, response, next) => {
 
 const deliveryRequestValidator = async (request, response, next) => {
 
-  const deliveryRequest = await DeliveryRequest.findById(request.params.id).exec()
+  const deliveryRequest = await DeliveryRequest.findById(request.params.id).populate('selectedDeliveryOffer').exec()
 
   if(!deliveryRequest){
     return response.status(404).json({
@@ -156,7 +156,7 @@ const deliveryRequestValidator = async (request, response, next) => {
     })
   }
 
-  if(['offer_selected', 'offer_accepted', 'canceled'].includes(deliveryRequest.status)){
+  if(['offer_selected', 'offer_accepted', 'canceled', 'paid'].includes(deliveryRequest.status)){
     return response.status(404).json({
         error: 'this action cannot be performed'
     })
@@ -182,7 +182,7 @@ const deliveryOfferValidator = async (request, response, next) => {
 
   if(!deliveryOffer){
     return response.status(404).json({
-        error: 'delivery request does not exist'
+        error: 'delivery offer does not exist'
     })
   }
 

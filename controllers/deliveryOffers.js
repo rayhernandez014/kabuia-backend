@@ -4,6 +4,7 @@ const { userExtractor, deliveryOfferValidator, roleValidator } = require('../uti
 const DeliveryRequest = require('../models/deliveryRequest')
 const mongoose = require('mongoose')
 const ContractWithDelivery = require('../models/contractWithDelivery')
+const { createInvoice } = require('../utils/invoices')
 
 deliveryOffersRouter.get('/:deliveryRequest', async (request, response) => {
 
@@ -84,15 +85,21 @@ deliveryOffersRouter.put('/accept-delivery/:id', userExtractor, deliveryOfferVal
 
   const updatedDeliveryOffer = await deliveryOffer.save({ session })
 
-  const receivedDeliveryRequest = {
-    status: 'offer_accepted'
-  }
+  const deliveryRequest = await DeliveryRequest.findById(updatedDeliveryOffer.deliveryRequest).session(session).exec()
 
-  const updatedDeliveryRequest = await DeliveryRequest.findByIdAndUpdate(updatedDeliveryOffer.deliveryRequest, receivedDeliveryRequest , {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).session(session).exec()
+  //invoice creation 
+  const invoice = await createInvoice(deliveryOffer.price, deliveryRequest.contract, 'delivery')
+
+  deliveryRequest.status = 'offer_accepted'
+  deliveryRequest.currentInvoice = invoice.id,
+  deliveryRequest.invoiceHistory = [...deliveryRequest.invoiceHistory, {
+      invoice: invoice.id,
+      status: 'created',
+      timestamp: new Date()
+    } 
+  ]
+
+  const updatedDeliveryRequest = await deliveryRequest.save({ session })
 
   const receivedContract = {
     deliverer: updatedDeliveryOffer.deliverer,

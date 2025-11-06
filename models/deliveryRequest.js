@@ -30,16 +30,16 @@ const deliveryRequestSchema = new mongoose.Schema({
   },
   deliveryOffers: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'deliveryOffer',
+    ref: 'DeliveryOffer',
     required: true
   }],
   selectedDeliveryOffer: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'deliveryOffer',
+    ref: 'DeliveryOffer',
   },
   status: {
     type: String,
-    enum: ['awaiting_offers', 'offer_selected', 'offer_accepted', 'canceled'],
+    enum: ['awaiting_offers', 'offer_selected', 'offer_accepted', 'canceled', 'payment_failed', 'paid'],
     default: 'awaiting_offers'
   },
   contract: {
@@ -47,6 +47,26 @@ const deliveryRequestSchema = new mongoose.Schema({
     ref: 'Contract',
     required: true
   },
+  invoiceHistory: [{
+    invoice: {
+      type: String
+    },
+    status: {
+      type: String,
+    },
+    timestamp: {
+      type: Date,
+      validate: {
+        validator: function (v) {        
+          return v instanceof Date && !isNaN(v.getTime())
+        },
+        message: props => 'new invoice event timestamp is invalid'
+      }
+    },
+  }],
+  currentInvoice: {
+    type: String
+  }
 })
 
 deliveryRequestSchema.pre('save', function (next) {

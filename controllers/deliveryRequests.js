@@ -5,6 +5,7 @@ const ContractWithDelivery = require('../models/contractWithDelivery')
 const mongoose = require('mongoose')
 const DeliveryOffer = require('../models/deliveryOffer')
 const Contract = require('../models/contract')
+const { createInvoice } = require('../utils/invoices')
 
 deliveryRequestsRouter.get('/:date/:origin/:destination', async (request, response) => {
 
@@ -167,6 +168,42 @@ deliveryRequestsRouter.put('/cancel/:id', userExtractor, deliveryRequestValidato
   request.mongoSession = null
 
   //notify all candidates
+
+  response.json(updatedDeliveryRequest)
+
+})
+
+deliveryRequestsRouter.put('/re-invoice/:id', userExtractor, roleValidator(['Seller']), deliveryRequestValidator, async (request, response) => {
+  
+  const session = await mongoose.startSession()
+  session.startTransaction()
+  request.mongoSession = session
+
+  const deliveryRequest = request.deliveryRequest
+
+  const deliveryOffer = deliveryRequest.selectedDeliveryOffer
+
+  if(deliveryRequest.status !== 'payment_failed'){
+    throw new Error('the payment of this invoice has not failed', { cause: { title: 'UserError', code: 400} })
+  }
+
+  //invoice creation 
+  const invoice = await createInvoice(deliveryOffer.price, deliveryRequest.contract, 'delivery')
+
+  deliveryRequest.status = 'offer_accepted'
+  deliveryRequest.currentInvoice = invoice.id,
+  deliveryRequest.invoiceHistory = [...deliveryRequest.invoiceHistory, {
+      invoice: invoice.id,
+      status: 'created',
+      timestamp: new Date()
+    } 
+  ]
+
+  const updatedDeliveryRequest = await deliveryRequest.save({ session })
+
+  await session.commitTransaction()
+  session.endSession()
+  request.mongoSession = null
 
   response.json(updatedDeliveryRequest)
 

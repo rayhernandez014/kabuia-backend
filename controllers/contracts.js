@@ -108,13 +108,15 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
   const savedContract = await contract.save({ session })
 
   //invoice creation 
-  const invoice = await createInvoice(order.total, savedContract._id)
+  const invoice = await createInvoice(order.total, savedContract._id, 'order')
 
   savedContract.invoiceHistory = [...contract.invoiceHistory, {
     invoice: invoice.id,
     status: 'created',
     timestamp: new Date()
   }]
+
+  savedContract.currentInvoice = invoice.id
 
   const updatedContract = await savedContract.save({ session })
 
@@ -214,14 +216,16 @@ contractsRouter.put('/update-status/:id', userExtractor, contractValidator, asyn
     ],
     ready: [
       {
-        to: 'delivering',
-        by: ['Deliverer'],
-        orderTypes: ['ContractWithDelivery']
-      },
-      {
         to: 'picked_up',
         by: ['Buyer'],
         orderTypes: ['ContractWithPickup']
+      },
+    ],
+    awaiting_deliverer: [
+      {
+        to: 'delivering',
+        by: ['Deliverer'],
+        orderTypes: ['ContractWithDelivery']
       },
     ],
     delivering: [
@@ -314,8 +318,8 @@ contractsRouter.put('/re-invoice/:id', userExtractor, roleValidator(['Buyer']), 
 
   const contract = request.contract
 
-  if(contract.invoiceHistory.at(-1).status !== 'expired' || contract.history.at(-1).status !== 'expired'){
-    throw new Error('this invoice is not expired', { cause: { title: 'UserError', code: 400} })
+  if(contract.history.at(-1).status !== 'payment_failed'){
+    throw new Error('the payment of this invoice has not failed', { cause: { title: 'UserError', code: 400} })
   }
 
   //verifying availability
@@ -333,7 +337,7 @@ contractsRouter.put('/re-invoice/:id', userExtractor, roleValidator(['Buyer']), 
   const orderTotal = priceList.reduce((accumulator, currentValue, idx) => accumulator + (currentValue * contract.order.quantities[idx]), 0)
 
   //invoice creation 
-  const invoice = await createInvoice(orderTotal, contract._id)
+  const invoice = await createInvoice(orderTotal, contract._id, 'order')
 
   contract.order.total = orderTotal //prices can change in the meantime so we recalculate total price, save it and use it for the invoice
   contract.invoiceHistory = [...contract.invoiceHistory, {
@@ -341,6 +345,7 @@ contractsRouter.put('/re-invoice/:id', userExtractor, roleValidator(['Buyer']), 
     status: 'created',
     timestamp: new Date()
   }]
+  contract.currentInvoice = invoice.id
   contract.history = [...contract.history, {
     status: 'placed',
     timestamp: new Date()

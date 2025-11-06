@@ -1,7 +1,7 @@
 require('dotenv').config()
 const axios = require('axios')
 
-const createInvoice = async (amount, contract) => {
+const createInvoice = async (amount, contract, type) => {
 
   const apiEndpoint = `/api/v1/stores/${process.env.BTCPS_STORE_ID}/invoices`
   
@@ -17,7 +17,8 @@ const createInvoice = async (amount, contract) => {
   const invoiceData = {
     amount: amount,
     metadata: {
-      contract: contract
+      contract: contract,
+      type: type
     }
   }
 

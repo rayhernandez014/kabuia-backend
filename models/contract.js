@@ -38,7 +38,7 @@ const contractSchema = new mongoose.Schema({
       required: true,
       validate: {
         validator: function (v) {
-          const standard = ['placed', 'paid', 'preparing', 'ready', 'delivering', 'delivered', 'picked_up', 'canceled', 'expired']
+          const standard = ['placed', 'paid', 'preparing', 'ready', 'delivering', 'delivered', 'awaiting_deliverer', 'picked_up', 'canceled', 'payment_failed']
           return standard.includes(v)
         },
         message: props => 'new contract status is invalid'
@@ -75,7 +75,10 @@ const contractSchema = new mongoose.Schema({
         message: props => 'new invoice event timestamp is invalid'
       }
     },
-  }]
+  }],
+  currentInvoice: {
+    type: String
+  }
 }, options)
 
 contractSchema.pre('save', function (next) {

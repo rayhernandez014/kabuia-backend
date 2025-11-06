@@ -25,7 +25,7 @@ const contractWithDeliverySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Location',
     required: true
-  },
+  }
 }, options)
 
 contractWithDeliverySchema.pre('save', function (next) {
