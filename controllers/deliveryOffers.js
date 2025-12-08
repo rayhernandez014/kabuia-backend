@@ -76,49 +76,45 @@ deliveryOffersRouter.delete( '/:id', userExtractor, deliveryOfferValidator, asyn
 deliveryOffersRouter.put('/accept-delivery/:id', userExtractor, deliveryOfferValidator, async (request, response) => {
 
   const session = await mongoose.startSession()
-  request.mongoSession = session
-  session.startTransaction()
+  await session.withTransaction(async () => {
 
-  const deliveryOffer = request.deliveryOffer
+    const deliveryOffer = request.deliveryOffer
 
-  deliveryOffer.status = 'accepted'
+    deliveryOffer.status = 'accepted'
 
-  const updatedDeliveryOffer = await deliveryOffer.save({ session })
+    const updatedDeliveryOffer = await deliveryOffer.save({ session })
 
-  const deliveryRequest = await DeliveryRequest.findById(updatedDeliveryOffer.deliveryRequest).session(session).exec()
+    const deliveryRequest = await DeliveryRequest.findById(updatedDeliveryOffer.deliveryRequest).session(session).exec()
 
-  //invoice creation 
-  const invoice = await createInvoice(deliveryOffer.price, deliveryRequest.contract, 'delivery')
+    //invoice creation 
+    const invoice = await createInvoice(deliveryOffer.price, deliveryRequest.contract, 'delivery')
 
-  deliveryRequest.status = 'offer_accepted'
-  deliveryRequest.currentInvoice = invoice.id,
-  deliveryRequest.invoiceHistory = [...deliveryRequest.invoiceHistory, {
-      invoice: invoice.id,
-      status: 'created',
-      timestamp: new Date()
-    } 
-  ]
+    deliveryRequest.status = 'offer_accepted'
+    deliveryRequest.currentInvoice = invoice.id,
+    deliveryRequest.invoiceHistory = [...deliveryRequest.invoiceHistory, {
+        invoice: invoice.id,
+        status: 'created',
+        timestamp: new Date()
+      } 
+    ]
 
-  const updatedDeliveryRequest = await deliveryRequest.save({ session })
+    const updatedDeliveryRequest = await deliveryRequest.save({ session })
 
-  const receivedContract = {
-    deliverer: updatedDeliveryOffer.deliverer,
-    deliveryOffer: request.params.id
-  }
+    const receivedContract = {
+      deliverer: updatedDeliveryOffer.deliverer,
+      deliveryOffer: request.params.id
+    }
 
-  const updatedContract = await ContractWithDelivery.findByIdAndUpdate(updatedDeliveryRequest.contract, receivedContract, {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).session(session).exec()
+    const updatedContract = await ContractWithDelivery.findByIdAndUpdate(updatedDeliveryRequest.contract, receivedContract, {
+      new: true,
+      runValidators: true,
+      context: 'query'
+    }).session(session).exec()
 
-  await session.commitTransaction()
-  session.endSession()
-  request.mongoSession = null
+    //notify the seller
+    response.json(updatedDeliveryOffer)
 
-  //notify the seller
-
-  response.json(updatedDeliveryOffer)
+  })
 
 })
 
@@ -126,45 +122,41 @@ deliveryOffersRouter.put('/accept-delivery/:id', userExtractor, deliveryOfferVal
 deliveryOffersRouter.put('/decline-delivery/:id', userExtractor, deliveryOfferValidator, async (request, response) => {
 
   const session = await mongoose.startSession()
-  request.mongoSession = session
-  session.startTransaction()
+  await session.withTransaction(async () => {
 
-  const deliveryOffer = request.deliveryOffer
+    const deliveryOffer = request.deliveryOffer
 
-  deliveryOffer.status = 'declined'
+    deliveryOffer.status = 'declined'
 
-  const updatedDeliveryOffer = await deliveryOffer.save({ session })
+    const updatedDeliveryOffer = await deliveryOffer.save({ session })
 
-  const nextBestOffer = await DeliveryOffer.findOne({
-    status: 'rejected',
-  }).sort('price').session(session).exec() //this could be limited to recent bids only, using "createdAt" mongoDB field
+    const nextBestOffer = await DeliveryOffer.findOne({
+      status: 'rejected',
+    }).sort('price').session(session).exec() //this could be limited to recent bids only, using "createdAt" mongoDB field
 
-  if(nextBestOffer){
-    nextBestOffer.status = 'selected'
-    await nextBestOffer.save({ session })
+    if(nextBestOffer){
+      nextBestOffer.status = 'selected'
+      await nextBestOffer.save({ session })
 
-    //notify the deliverer
-  }
-  else{
-    const receivedDeliveryRequest = {
-      status: 'awaiting_offers',
-      selectedDeliveryOffer: null
+      //notify the deliverer
     }
+    else{
+      const receivedDeliveryRequest = {
+        status: 'awaiting_offers',
+        selectedDeliveryOffer: null
+      }
 
-    const updatedDeliveryRequest = await DeliveryRequest.findByIdAndUpdate(updatedDeliveryOffer.deliveryRequest, receivedDeliveryRequest , {
-      new: true,
-      runValidators: true,
-      context: 'query'
-    }).session(session).exec()
-  }  
+      const updatedDeliveryRequest = await DeliveryRequest.findByIdAndUpdate(updatedDeliveryOffer.deliveryRequest, receivedDeliveryRequest , {
+        new: true,
+        runValidators: true,
+        context: 'query'
+      }).session(session).exec()
+    }  
 
-  //penalize deliverer for declining
+    //penalize deliverer for declining
+    response.json(updatedDeliveryOffer)
 
-  await session.commitTransaction()
-  session.endSession()
-  request.mongoSession = null
-
-  response.json(updatedDeliveryOffer)
+  })
 
 })
 

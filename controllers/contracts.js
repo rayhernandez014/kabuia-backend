@@ -18,121 +18,118 @@ contractsRouter.post('/', userExtractor, roleValidator(['Buyer']), async (reques
   const { sellerId, expectedReadyDate, contractType, pickupLocation, deliveryLocation } = request.body
   
   const session = await mongoose.startSession()
-  session.startTransaction()
-  request.mongoSession = session
+  await session.withTransaction(async () => {
 
-  const seller = await Seller.findById(sellerId).session(session).exec()
+    const seller = await Seller.findById(sellerId).session(session).exec()
 
-  if (!seller) {
-    throw new Error('seller is invalid', { cause: { title: 'UserError', code: 403} })
-  }
-
-  const buyer = request.user
-
-  if (buyer.shoppingCart.items.length === 0) {
-    throw new Error('shopping cart is empty', { cause: { title: 'UserError', code: 400} })
-  }
-
-  //verifying availability
-
-  const priceList = []
-
-  for( const [idx, item] of buyer.shoppingCart.items.entries()){
-    const product = await Product.findById(item).session(session).exec()
-    if(!product || product?.stock < buyer.shoppingCart.quantities[idx]){
-      throw new Error(`this product is out of stock or does not exist: ${item.toString()}`, { cause: { title: 'UserError', code: 400} })
+    if (!seller) {
+      throw new Error('seller is invalid', { cause: { title: 'UserError', code: 403} })
     }
-    priceList.push(product.price)
-  }
 
-  const orderTotal = priceList.reduce((accumulator, currentValue, idx) => accumulator + (currentValue * buyer.shoppingCart.quantities[idx]), 0)
+    const buyer = request.user
 
-  const order = {
-    ...buyer.shoppingCart,
-    total: orderTotal
-  }
+    if (buyer.shoppingCart.items.length === 0) {
+      throw new Error('shopping cart is empty', { cause: { title: 'UserError', code: 400} })
+    }
 
-  let contract = null  
+    //verifying availability
+
+    const priceList = []
+
+    for( const [idx, item] of buyer.shoppingCart.items.entries()){
+      const product = await Product.findById(item).session(session).exec()
+      if(!product || product?.stock < buyer.shoppingCart.quantities[idx]){
+        throw new Error(`this product is out of stock or does not exist: ${item.toString()}`, { cause: { title: 'UserError', code: 400} })
+      }
+      priceList.push(product.price)
+    }
+
+    const orderTotal = priceList.reduce((accumulator, currentValue, idx) => accumulator + (currentValue * buyer.shoppingCart.quantities[idx]), 0)
+
+    const order = {
+      ...buyer.shoppingCart,
+      total: orderTotal
+    }
+
+    let contract = null  
+    
+    if(contractType === 'ContractWithPickup'){
+
+      if(!seller.locations.includes(pickupLocation)){
+        throw new Error('this location is not valid', { cause: { title: 'UserError', code: 400} })
+      }
+
+      contract = new ContractWithPickup({
+        buyer: buyer._id,
+        seller: seller._id, 
+        order: order, 
+        history: {
+          status: 'placed',
+          timestamp: new Date()
+        },
+        expectedReadyDate: new Date(expectedReadyDate),
+        pickupLocation: pickupLocation
+      })
+    }
+
+    else if(contractType === 'ContractWithDelivery'){
+
+      if(!buyer.locations.includes(deliveryLocation)){
+        throw new Error('this location is not valid', { cause: { title: 'UserError', code: 400} })
+      }
+
+      contract = new ContractWithDelivery({
+        buyer: buyer._id,
+        seller: seller._id, 
+        order: order,
+        history: {
+          status: 'placed',
+          timestamp: new Date()
+        },
+        expectedReadyDate: new Date(expectedReadyDate),
+        deliveryLocation: deliveryLocation
+      })
+
+    }
+
+    if(!contract){
+      throw new Error('contract type is invalid', { cause: { title: 'UserError', code: 400} })
+    }
+
+    for( const [idx, item] of buyer.shoppingCart.items.entries()){
+      await Product.findByIdAndUpdate(item, { $inc: { stock: (buyer.shoppingCart.quantities[idx] * -1), reservedStock: (buyer.shoppingCart.quantities[idx]) } }, {
+        new: true,
+        runValidators: true,
+        context: 'query'
+      }).session(session).exec()
+    }
   
-  if(contractType === 'ContractWithPickup'){
+    const savedContract = await contract.save({ session })
 
-    if(!seller.locations.includes(pickupLocation)){
-      throw new Error('this location is not valid', { cause: { title: 'UserError', code: 400} })
+    //invoice creation 
+    const invoice = await createInvoice(order.total, savedContract._id, 'order')
+
+    savedContract.invoiceHistory = [...contract.invoiceHistory, {
+      invoice: invoice.id,
+      status: 'created',
+      timestamp: new Date()
+    }]
+
+    savedContract.currentInvoice = invoice.id
+
+    const updatedContract = await savedContract.save({ session })
+
+    buyer.shoppingCart = {
+      items: [],
+      quantities: []
     }
 
-    contract = new ContractWithPickup({
-      buyer: buyer._id,
-      seller: seller._id, 
-      order: order, 
-      history: {
-        status: 'placed',
-        timestamp: new Date()
-      },
-      expectedReadyDate: new Date(expectedReadyDate),
-      pickupLocation: pickupLocation
-    })
-  }
+    const updatedBuyer = await buyer.save({ session })
 
-  else if(contractType === 'ContractWithDelivery'){
+    response.status(201).json({updatedContract})
 
-    if(!buyer.locations.includes(deliveryLocation)){
-      throw new Error('this location is not valid', { cause: { title: 'UserError', code: 400} })
-    }
-
-    contract = new ContractWithDelivery({
-      buyer: buyer._id,
-      seller: seller._id, 
-      order: order,
-      history: {
-        status: 'placed',
-        timestamp: new Date()
-      },
-      expectedReadyDate: new Date(expectedReadyDate),
-      deliveryLocation: deliveryLocation
-    })
-
-  }
-
-  if(!contract){
-    throw new Error('contract type is invalid', { cause: { title: 'UserError', code: 400} })
-  }
-
-  for( const [idx, item] of buyer.shoppingCart.items.entries()){
-    await Product.findByIdAndUpdate(item, { $inc: { stock: (buyer.shoppingCart.quantities[idx] * -1), reservedStock: (buyer.shoppingCart.quantities[idx]) } }, {
-      new: true,
-      runValidators: true,
-      context: 'query'
-    }).session(session).exec()
-  }
- 
-  const savedContract = await contract.save({ session })
-
-  //invoice creation 
-  const invoice = await createInvoice(order.total, savedContract._id, 'order')
-
-  savedContract.invoiceHistory = [...contract.invoiceHistory, {
-    invoice: invoice.id,
-    status: 'created',
-    timestamp: new Date()
-  }]
-
-  savedContract.currentInvoice = invoice.id
-
-  const updatedContract = await savedContract.save({ session })
-
-  buyer.shoppingCart = {
-    items: [],
-    quantities: []
-  }
-
-  const updatedBuyer = await buyer.save({ session })
-
-  await session.commitTransaction()
-  session.endSession()
-  request.mongoSession = null
+  })
   
-  response.status(201).json({updatedContract})
-
 })
 /*
 productsRouter.delete( '/:id', userExtractor, productValidator, async (request, response) => {
@@ -264,32 +261,29 @@ contractsRouter.put('/update-status/:id', userExtractor, contractValidator, asyn
   if(newStatus === 'canceled'){
 
     const session = await mongoose.startSession()
-    request.mongoSession = session
-    session.startTransaction()
+    await session.withTransaction(async () => {
 
-    for( const [idx, item] of request.contract.order.items.entries()){
-      await Product.findByIdAndUpdate(item, { $inc: { stock: request.contract.order.quantities[idx], reservedStock: request.contract.order.quantities[idx] * -1 } }, {
+      for( const [idx, item] of request.contract.order.items.entries()){
+        await Product.findByIdAndUpdate(item, { $inc: { stock: request.contract.order.quantities[idx], reservedStock: request.contract.order.quantities[idx] * -1 } }, {
+          new: true,
+          runValidators: true,
+          context: 'query'
+        }).session(session).exec()
+      }
+
+      updatedContract = await Contract.findByIdAndUpdate(request.params.id, {
+        $push: { history: {
+            status: newStatus,
+            timestamp: new Date()
+          } 
+        }
+      } , {
         new: true,
         runValidators: true,
         context: 'query'
       }).session(session).exec()
-    }
 
-    updatedContract = await Contract.findByIdAndUpdate(request.params.id, {
-      $push: { history: {
-          status: newStatus,
-          timestamp: new Date()
-        } 
-      }
-    } , {
-      new: true,
-      runValidators: true,
-      context: 'query'
-    }).session(session).exec()
-
-    await session.commitTransaction()
-    session.endSession()
-    request.mongoSession = null
+    })
 
   }
   else{
@@ -313,59 +307,56 @@ contractsRouter.put('/update-status/:id', userExtractor, contractValidator, asyn
 contractsRouter.put('/re-invoice/:id', userExtractor, roleValidator(['Buyer']), contractValidator, async (request, response) => {
   
   const session = await mongoose.startSession()
-  session.startTransaction()
-  request.mongoSession = session
+  await session.withTransaction(async () => {
 
-  const contract = request.contract
+    const contract = request.contract
 
-  if(contract.history.at(-1).status !== 'payment_failed'){
-    throw new Error('the payment of this invoice has not failed', { cause: { title: 'UserError', code: 400} })
-  }
-
-  //verifying availability
-
-  const priceList = []
-
-  for( const [idx, item] of contract.order.items.entries()){
-    const product = await Product.findById(item).session(session).exec()
-    if(!product || product?.stock < contract.order.quantities[idx]){
-      throw new Error(`this product is out of stock or does not exist: ${item.toString()}`, { cause: { title: 'UserError', code: 400} })
+    if(contract.history.at(-1).status !== 'payment_failed'){
+      throw new Error('the payment of this invoice has not failed', { cause: { title: 'UserError', code: 400} })
     }
-    priceList.push(product.price)
-  }
 
-  const orderTotal = priceList.reduce((accumulator, currentValue, idx) => accumulator + (currentValue * contract.order.quantities[idx]), 0)
+    //verifying availability
 
-  //invoice creation 
-  const invoice = await createInvoice(orderTotal, contract._id, 'order')
+    const priceList = []
 
-  contract.order.total = orderTotal //prices can change in the meantime so we recalculate total price, save it and use it for the invoice
-  contract.invoiceHistory = [...contract.invoiceHistory, {
-    invoice: invoice.id,
-    status: 'created',
-    timestamp: new Date()
-  }]
-  contract.currentInvoice = invoice.id
-  contract.history = [...contract.history, {
-    status: 'placed',
-    timestamp: new Date()
-  }]
+    for( const [idx, item] of contract.order.items.entries()){
+      const product = await Product.findById(item).session(session).exec()
+      if(!product || product?.stock < contract.order.quantities[idx]){
+        throw new Error(`this product is out of stock or does not exist: ${item.toString()}`, { cause: { title: 'UserError', code: 400} })
+      }
+      priceList.push(product.price)
+    }
 
-  const updatedContract = await contract.save({ session })
+    const orderTotal = priceList.reduce((accumulator, currentValue, idx) => accumulator + (currentValue * contract.order.quantities[idx]), 0)
 
-  for( const [idx, item] of updatedContract.order.items.entries()){
-    await Product.findByIdAndUpdate(item, { $inc: { stock: (updatedContract.order.quantities[idx] * -1), reservedStock: (updatedContract.order.quantities[idx]) } }, {
-      new: true,
-      runValidators: true,
-      context: 'query'
-    }).session(session).exec()
-  }
+    //invoice creation 
+    const invoice = await createInvoice(orderTotal, contract._id, 'order')
 
-  await session.commitTransaction()
-  session.endSession()
-  request.mongoSession = null
+    contract.order.total = orderTotal //prices can change in the meantime so we recalculate total price, save it and use it for the invoice
+    contract.invoiceHistory = [...contract.invoiceHistory, {
+      invoice: invoice.id,
+      status: 'created',
+      timestamp: new Date()
+    }]
+    contract.currentInvoice = invoice.id
+    contract.history = [...contract.history, {
+      status: 'placed',
+      timestamp: new Date()
+    }]
 
-  response.json(updatedContract)
+    const updatedContract = await contract.save({ session })
+
+    for( const [idx, item] of updatedContract.order.items.entries()){
+      await Product.findByIdAndUpdate(item, { $inc: { stock: (updatedContract.order.quantities[idx] * -1), reservedStock: (updatedContract.order.quantities[idx]) } }, {
+        new: true,
+        runValidators: true,
+        context: 'query'
+      }).session(session).exec()
+    }
+
+    response.json(updatedContract)
+
+  })
 
 })
 

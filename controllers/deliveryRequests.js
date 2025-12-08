@@ -6,6 +6,7 @@ const mongoose = require('mongoose')
 const DeliveryOffer = require('../models/deliveryOffer')
 const Contract = require('../models/contract')
 const { createInvoice } = require('../utils/invoices')
+const { cancelDeliveryRequest } = require('../utils/deliveryRequests')
 
 deliveryRequestsRouter.get('/:date/:origin/:destination', async (request, response) => {
 
@@ -104,108 +105,82 @@ deliveryRequestsRouter.put('/select-offer/:id', userExtractor, deliveryRequestVa
   const { selectedDeliveryOffer } = request.body
 
   const session = await mongoose.startSession()
-  request.mongoSession = session
-  session.startTransaction()
+  await session.withTransaction(async () => {
 
-  const deliveryRequest = request.deliveryRequest
+    const deliveryRequest = request.deliveryRequest
 
-  if(!deliveryRequest.deliveryOffers.includes(selectedDeliveryOffer)){
-    throw new Error('delivery offer is invalid', { cause: { title: 'UserError', code: 400} })
-  }
+    if(!deliveryRequest.deliveryOffers.includes(selectedDeliveryOffer)){
+      throw new Error('delivery offer is invalid', { cause: { title: 'UserError', code: 400} })
+    }
 
-  deliveryRequest.status = 'offer_selected'
-  deliveryRequest.selectedDeliveryOffer = selectedDeliveryOffer
+    deliveryRequest.status = 'offer_selected'
+    deliveryRequest.selectedDeliveryOffer = selectedDeliveryOffer
 
-  const updatedDeliveryRequest = await deliveryRequest.save({ session })
+    const updatedDeliveryRequest = await deliveryRequest.save({ session })
 
-  const newDeliveryOfferData = {
-    status: 'selected'
-  }
+    const newDeliveryOfferData = {
+      status: 'selected'
+    }
 
-  await DeliveryOffer.findByIdAndUpdate(selectedDeliveryOffer, newDeliveryOfferData, {
-      new: true,
-      runValidators: true,
-      context: 'query'
-  }).session(session).exec()
+    await DeliveryOffer.findByIdAndUpdate(selectedDeliveryOffer, newDeliveryOfferData, {
+        new: true,
+        runValidators: true,
+        context: 'query'
+    }).session(session).exec()
 
-  await DeliveryOffer.updateMany({deliveryRequest: request.params.id, _id: { $ne: selectedDeliveryOffer }, status: 'pending'}, {status: 'rejected'}, { session }).exec()
+    await DeliveryOffer.updateMany({deliveryRequest: request.params.id, _id: { $ne: selectedDeliveryOffer }, status: 'pending'}, {status: 'rejected'}, { session }).exec()
 
-  await session.commitTransaction()
-  session.endSession()
-  request.mongoSession = null
-
-  //notify all candidates
-
-  response.json(updatedDeliveryRequest)
+    //notify all candidates
+    response.json(updatedDeliveryRequest)
+  })
 
 })
 
 deliveryRequestsRouter.put('/cancel/:id', userExtractor, deliveryRequestValidator, async (request, response) => {
 
   const session = await mongoose.startSession()
-  request.mongoSession = session
-  session.startTransaction()
+  await session.withTransaction(async () => {
 
-  const deliveryRequest = request.deliveryRequest
+    const deliveryRequest = request.deliveryRequest
 
-  deliveryRequest.status = 'canceled'
+    const updatedDeliveryRequest = await cancelDeliveryRequest(session, deliveryRequest)
 
-  const updatedDeliveryRequest = await deliveryRequest.save({ session })
+    response.json(updatedDeliveryRequest)
 
-  const updatedContract = await ContractWithDelivery.findByIdAndUpdate(updatedDeliveryRequest.contract, {
-    $set: {deliveryRequest: null},
-    $push: { 
-      deliveryRequestHistory: updatedDeliveryRequest._id
-    }
-  } , {
-    new: true,
-    runValidators: true,
-    context: 'query'
-  }).session(session).exec()
-
-  await session.commitTransaction()
-  session.endSession()
-  request.mongoSession = null
-
-  //notify all candidates
-
-  response.json(updatedDeliveryRequest)
+  })
 
 })
 
 deliveryRequestsRouter.put('/re-invoice/:id', userExtractor, roleValidator(['Seller']), deliveryRequestValidator, async (request, response) => {
   
   const session = await mongoose.startSession()
-  session.startTransaction()
-  request.mongoSession = session
+  await session.withTransaction(async () => {
 
-  const deliveryRequest = request.deliveryRequest
+    const deliveryRequest = request.deliveryRequest
 
-  const deliveryOffer = deliveryRequest.selectedDeliveryOffer
+    const deliveryOffer = deliveryRequest.selectedDeliveryOffer
 
-  if(deliveryRequest.status !== 'payment_failed'){
-    throw new Error('the payment of this invoice has not failed', { cause: { title: 'UserError', code: 400} })
-  }
+    if(deliveryRequest.status !== 'payment_failed'){
+      throw new Error('the payment of this invoice has not failed', { cause: { title: 'UserError', code: 400} })
+    }
 
-  //invoice creation 
-  const invoice = await createInvoice(deliveryOffer.price, deliveryRequest.contract, 'delivery')
+    //invoice creation 
+    const invoice = await createInvoice(deliveryOffer.price, deliveryRequest.contract, 'delivery')
 
-  deliveryRequest.status = 'offer_accepted'
-  deliveryRequest.currentInvoice = invoice.id,
-  deliveryRequest.invoiceHistory = [...deliveryRequest.invoiceHistory, {
-      invoice: invoice.id,
-      status: 'created',
-      timestamp: new Date()
-    } 
-  ]
+    deliveryRequest.status = 'offer_accepted'
+    deliveryRequest.currentInvoice = invoice.id,
+    deliveryRequest.invoiceHistory = [...deliveryRequest.invoiceHistory, {
+        invoice: invoice.id,
+        status: 'created',
+        timestamp: new Date()
+      } 
+    ]
 
-  const updatedDeliveryRequest = await deliveryRequest.save({ session })
+    const updatedDeliveryRequest = await deliveryRequest.save({ session })
 
-  await session.commitTransaction()
-  session.endSession()
-  request.mongoSession = null
+    response.json(updatedDeliveryRequest)
 
-  response.json(updatedDeliveryRequest)
+  })
 
 })
 

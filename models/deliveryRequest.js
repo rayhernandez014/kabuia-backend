@@ -66,6 +66,10 @@ const deliveryRequestSchema = new mongoose.Schema({
   }],
   currentInvoice: {
     type: String
+  },
+  paymentFailureCount: {
+    type: Number,
+    default: 0
   }
 })
 

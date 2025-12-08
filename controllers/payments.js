@@ -5,6 +5,8 @@ const Contract = require('../models/contract')
 const Product = require('../models/product')
 const mongoose = require('mongoose')
 const DeliveryRequest = require('../models/deliveryRequest')
+const { cancelDeliveryRequest } = require('../utils/deliveryRequests')
+const ContractWithDelivery = require('../models/contractWithDelivery')
 
 //for successful validation, I need to use this body.parser just for this endpoint
 
@@ -42,188 +44,223 @@ paymentsRouter.post('/', async (request, response) => {
       return response.status(400).send('Invalid invoice type in metadata')
     }
 
+    let httpWarningText
+
     const session = await mongoose.startSession()
-    request.mongoSession = session
-    session.startTransaction()  
+    await session.withTransaction(async () => {
 
-    //filter by invoice type and remove when canceled
+      let newStatus
+      let newContractStatus
 
-    let newStatus
-    let newContractStatus
+      if (invoiceType === 'order') {
 
-    if (invoiceType === 'order') {
+        const contract = await Contract.findOne({currentInvoice: invoiceId}).session(session).exec()
 
-      const contract = await Contract.findOne({currentInvoice: invoiceId}).session(session).exec()
+        if(!contract){
+          throw new Error('invalid invoice id', { cause: { title: 'UserError', code: 404} })
+        }
 
-      if(!contract){
-        throw new Error('invalid invoice id', { cause: { title: 'UserError', code: 404} })
-      }
+        const ignoreStatus = (newStatus) => {
+          const ignoreStatus = Boolean(contract.invoiceHistory.find((event)=>{ return (([newStatus, 'settled'].includes(event.status)) && (event.invoice === invoiceId)) }))
+          return ignoreStatus
+        }    
 
-      const ignoreStatus = (newStatus) => {
-        const ignoreStatus = Boolean(contract.invoiceHistory.find((event)=>{ return (([newStatus, 'settled'].includes(event.status)) && (event.invoice === invoiceId)) }))
-        return ignoreStatus
-      }    
+        switch (eventType) {
+          case 'InvoiceProcessing':
+            if(ignoreStatus('pending')){
+              console.warn(`duplicated event: ${eventType}`)
+              httpResponseText = `Warning: duplicated event: ${eventType}`
+              return
+            }
+            newStatus = 'pending'
+            break
+          case 'InvoiceSettled':
+            if(ignoreStatus('settled')){
+              console.warn(`duplicated event: ${eventType}`)
+              httpResponseText = `Warning: duplicated event: ${eventType}`
+              return
+            }
+            for( const [idx, item] of contract.order.items.entries()){
+              await Product.findByIdAndUpdate(item, { $inc: { reservedStock: contract.order.quantities[idx] * -1 } }, {
+                new: true,
+                runValidators: true,
+                context: 'query'
+              }).session(session).exec()
+            }
+            newContractStatus = 'paid'
+            newStatus = 'settled'
+            break
+          case 'InvoiceExpired':        
+            if(ignoreStatus('expired')){
+              console.warn(`duplicated event: ${eventType}`)
+              httpResponseText = `Warning: duplicated event: ${eventType}`
+              return
+            }
+            for( const [idx, item] of contract.order.items.entries()){
+              await Product.findByIdAndUpdate(item, { $inc: { stock: contract.order.quantities[idx], reservedStock: contract.order.quantities[idx] * -1 } }, {
+                new: true,
+                runValidators: true,
+                context: 'query'
+              }).session(session).exec()
+            }
+            newContractStatus = 'payment_failed'
+            newStatus = 'expired'
+            break
+          case 'InvoiceInvalid':        
+            if(ignoreStatus('invalid')){
+              console.warn(`duplicated event: ${eventType}`)
+              httpResponseText = `Warning: duplicated event: ${eventType}`
+              return
+            }
+            for( const [idx, item] of contract.order.items.entries()){
+              await Product.findByIdAndUpdate(item, { $inc: { stock: contract.order.quantities[idx], reservedStock: contract.order.quantities[idx] * -1 } }, {
+                new: true,
+                runValidators: true,
+                context: 'query'
+              }).session(session).exec()
+            }
+            newContractStatus = 'payment_failed'
+            newStatus = 'invalid'
+            break
+          default:
+            console.warn(`Unhandled webhook event type: ${eventType}`)
+            httpResponseText = `Warning: Unhandled webhook event type: ${eventType}`
+            return
+        }
 
-      switch (eventType) {
-        case 'InvoiceProcessing':
-          newStatus = 'pending'
-          if(ignoreStatus(newStatus)){
-            console.warn(`duplicated event: ${eventType}`)
-            return response.status(200).send(`Warning: duplicated event: ${eventType}`)
-          }
-          break
-        case 'InvoiceSettled':
-          newStatus = 'settled'
-          if(ignoreStatus(newStatus)){
-            console.warn(`duplicated event: ${eventType}`)
-            return response.status(200).send(`Warning: duplicated event: ${eventType}`)
-          }
-          for( const [idx, item] of contract.order.items.entries()){
-            await Product.findByIdAndUpdate(item, { $inc: { reservedStock: contract.order.quantities[idx] * -1 } }, {
-              new: true,
-              runValidators: true,
-              context: 'query'
-            }).session(session).exec()
-          }
-          newContractStatus = 'paid'
-          break
-        case 'InvoiceExpired':        
-          newStatus = 'expired'
-          if(ignoreStatus(newStatus)){
-            console.warn(`duplicated event: ${eventType}`)
-            return response.status(200).send(`Warning: duplicated event: ${eventType}`)
-          }
-          for( const [idx, item] of contract.order.items.entries()){
-            await Product.findByIdAndUpdate(item, { $inc: { stock: contract.order.quantities[idx], reservedStock: contract.order.quantities[idx] * -1 } }, {
-              new: true,
-              runValidators: true,
-              context: 'query'
-            }).session(session).exec()
-          }
-          newContractStatus = 'payment_failed'
-          break
-        case 'InvoiceInvalid':        
-          newStatus = 'invalid'
-          if(ignoreStatus(newStatus)){
-            console.warn(`duplicated event: ${eventType}`)
-            return response.status(200).send(`Warning: duplicated event: ${eventType}`)
-          }
-          for( const [idx, item] of contract.order.items.entries()){
-            await Product.findByIdAndUpdate(item, { $inc: { stock: contract.order.quantities[idx], reservedStock: contract.order.quantities[idx] * -1 } }, {
-              new: true,
-              runValidators: true,
-              context: 'query'
-            }).session(session).exec()
-          }
-          newContractStatus = 'payment_failed'
-          break
-        default:
-          console.warn(`Unhandled webhook event type: ${eventType}`)
-          return response.status(200).send(`Warning: Unhandled webhook event type: ${eventType}`)
-      }
+        if(newStatus){
 
-      if(newContractStatus){
-        contract.history = [...contract.history, {
-          status: newContractStatus,
+          contract.invoiceHistory = [...contract.invoiceHistory, {
+            invoice: invoiceId,
+            status: newStatus,
             timestamp: new Date()
-        }]
-      }
+          }]
 
-      contract.invoiceHistory = [...contract.invoiceHistory, {
-        invoice: invoiceId,
-        status: newStatus,
-        timestamp: new Date()
-      }]
-
-      await contract.save({ session })
-
-    }
-
-    else if(invoiceType === 'delivery'){   
-
-      const deliveryRequest = await DeliveryRequest.findOne({currentInvoice: invoiceId}).session(session).exec()
-
-      if(!deliveryRequest){
-        throw new Error('invalid invoice id', { cause: { title: 'UserError', code: 404} })
-      }
-
-      let newDeliveryRequestStatus
-
-      const ignoreStatus = (newStatus) => {
-        const ignoreStatus = Boolean(deliveryRequest.invoiceHistory.find((event)=>{ return (([newStatus, 'settled'].includes(event.status)) && (event.invoice === invoiceId)) }))
-        return ignoreStatus
-      } 
-
-      switch (eventType) {
-        case 'InvoiceProcessing':
-          newStatus = 'pending'
-          if(ignoreStatus(newStatus)){
-            console.warn(`duplicated event: ${eventType}`)
-            return response.status(200).send(`Warning: duplicated event: ${eventType}`)
-          }
-          break
-        case 'InvoiceSettled':
-          newStatus = 'settled'
-          if(ignoreStatus(newStatus)){
-            console.warn(`duplicated event: ${eventType}`)
-            return response.status(200).send(`Warning: duplicated event: ${eventType}`)
-          }
-          newDeliveryRequestStatus = 'paid'
-          newContractStatus = 'awaiting_deliverer'
-          break
-        case 'InvoiceExpired':        
-          newStatus = 'expired'
-          if(ignoreStatus(newStatus)){
-            console.warn(`duplicated event: ${eventType}`)
-            return response.status(200).send(`Warning: duplicated event: ${eventType}`)
-          }
-          newDeliveryRequestStatus = 'payment_failed'
-          break
-        case 'InvoiceInvalid':        
-          newStatus = 'invalid'
-          if(ignoreStatus(newStatus)){
-            console.warn(`duplicated event: ${eventType}`)
-            return response.status(200).send(`Warning: duplicated event: ${eventType}`)
-          }
-          newDeliveryRequestStatus = 'payment_failed'
-          break
-        default:
-          console.warn(`Unhandled webhook event type: ${eventType}`)
-          return response.status(200).send(`Warning: Unhandled webhook event type: ${eventType}`)
-      }
-
-      if(newDeliveryRequestStatus){
-        deliveryRequest.status = newDeliveryRequestStatus
-      }
-
-      deliveryRequest.invoiceHistory = [...deliveryRequest.invoiceHistory, {
-        invoice: invoiceId,
-        status: newStatus,
-        timestamp: new Date()
-      }]
-
-      await deliveryRequest.save({ session })
-
-      if(newContractStatus){
-        await Contract.findByIdAndUpdate(deliveryRequest.contract, {
-          $push: { history: {
+          if(newContractStatus){
+            contract.history = [...contract.history, {
               status: newContractStatus,
-              timestamp: new Date()
-            } 
+                timestamp: new Date()
+            }]
           }
-        }, {
-          new: true,
-          runValidators: true,
-          context: 'query'
-        }).session(session).exec()
+
+          await contract.save({ session })
+
+        }
+
       }
-    }
 
-    await session.commitTransaction()
-    session.endSession()
-    request.mongoSession = null
+      else if(invoiceType === 'delivery'){   
 
-    response.status(200).send('Success: request body was signed')
+        const deliveryRequest = await DeliveryRequest.findOne({currentInvoice: invoiceId}).session(session).exec()
+
+        if(!deliveryRequest){
+          throw new Error('invalid invoice id', { cause: { title: 'UserError', code: 404} })
+        }
+
+        let newDeliveryRequestStatus
+
+        const ignoreStatus = (newStatus) => {
+          const ignoreStatus = Boolean(deliveryRequest.invoiceHistory.find((event)=>{ return (([newStatus, 'settled'].includes(event.status)) && (event.invoice === invoiceId)) }))
+          return ignoreStatus
+        } 
+
+        const failureLimitExceeded = () => {
+          const failureCount = deliveryRequest.paymentFailureCount
+          return failureCount === 2
+        }
+
+        switch (eventType) {
+          case 'InvoiceProcessing':
+            if(ignoreStatus('pending')){
+              console.warn(`duplicated event: ${eventType}`)
+              httpResponseText = `Warning: duplicated event: ${eventType}`
+              return
+            }
+            newStatus = 'pending'
+            break
+          case 'InvoiceSettled':
+            if(ignoreStatus('settled')){
+              console.warn(`duplicated event: ${eventType}`)
+              httpResponseText = `Warning: duplicated event: ${eventType}`
+              return
+            }
+            newDeliveryRequestStatus = 'paid'
+            newContractStatus = 'awaiting_deliverer'
+            newStatus = 'settled'
+            break
+          case 'InvoiceExpired':        
+            if(ignoreStatus('expired')){
+              console.warn(`duplicated event: ${eventType}`)
+              httpResponseText = `Warning: duplicated event: ${eventType}`
+              return
+            }
+            if(failureLimitExceeded()){
+              console.warn('payment failure limit exceeded by user')
+              await cancelDeliveryRequest(session, deliveryRequest)
+              httpResponseText = 'payment failure limit exceeded by user'
+              return
+            }
+            deliveryRequest.paymentFailureCount++
+            newDeliveryRequestStatus = 'payment_failed'
+            newStatus = 'expired'
+            break
+          case 'InvoiceInvalid':        
+            if(ignoreStatus('invalid')){
+              console.warn(`duplicated event: ${eventType}`)
+              httpResponseText = 'payment failure limit exceeded by user'
+              return
+            }
+            if(failureLimitExceeded()){
+              console.warn('payment failure limit exceeded by user')
+              await cancelDeliveryRequest(session, deliveryRequest)
+              httpResponseText = 'payment failure limit exceeded by user'
+              return
+            }
+            deliveryRequest.paymentFailureCount++
+            newDeliveryRequestStatus = 'payment_failed'
+            newStatus = 'invalid'
+            break
+          default:
+            console.warn(`Unhandled webhook event type: ${eventType}`)
+            httpResponseText = `Warning: Unhandled webhook event type: ${eventType}`
+            return
+        }
+
+        if(newStatus){
+
+          deliveryRequest.invoiceHistory = [...deliveryRequest.invoiceHistory, {
+            invoice: invoiceId,
+            status: newStatus,
+            timestamp: new Date()
+          }]
+
+          if(newDeliveryRequestStatus){
+            deliveryRequest.status = newDeliveryRequestStatus
+          }
+
+          await deliveryRequest.save({ session })
+
+          if(newContractStatus){
+            await ContractWithDelivery.findByIdAndUpdate(deliveryRequest.contract, {
+              $push: { history: {
+                  status: newContractStatus,
+                  timestamp: new Date()
+                } 
+              }
+            }, {
+              new: true,
+              runValidators: true,
+              context: 'query'
+            }).session(session).exec()
+          }
+
+        }
+      }
+
+    })
+
+    response.status(200).send(httpWarningText ?? 'Success: request body was signed')
+
   }
 
 })

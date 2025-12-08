@@ -23,22 +23,7 @@ const unknownEndpoint = (request, response) => {
 }
 
 const errorHandler = async (error, request, response, next) => {
-
-  if (request?.mongoSession) {
-    try {
-      await request.mongoSession.abortTransaction();
-    } catch (abortError) {
-      console.warn('Error aborting transaction:', abortError.message);
-    }
-    try {
-      await request.mongoSession.endSession();
-    } catch (endError) {
-      console.warn('Session already ended:', endError.message);
-    }
-    request.mongoSession = null; // Clear session
-  }
   
-
   if (error.name === 'CastError') {
     return response.status(400).json({ error: 'malformatted id' })
   }
