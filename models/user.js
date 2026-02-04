@@ -72,9 +72,6 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Review'
   }],
-  stripeID: {
-    type: String
-  },
   locations: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Location',

@@ -16,7 +16,7 @@ usersRouter.get('/', userExtractor, async (request, response) => {
 })
 
 usersRouter.post('/', async (request, response) => {
-  const { firstname, lastname, email, phone, password, photo, stripeID, locations, type, temp_shoppingCart } = request.body
+  const { firstname, lastname, email, phone, password, photo, locations, type, temp_shoppingCart } = request.body
 
   if (!validatePassword(password)) {
     return response.status(400).json({
@@ -53,7 +53,6 @@ usersRouter.post('/', async (request, response) => {
       passwordHash: passwordHash,
       photo: photo ?? '',
       reviews: [],
-      stripeID: stripeID ?? '',
       locations: locations,
       shoppingCart: shoppingCart
     })
@@ -72,7 +71,6 @@ usersRouter.post('/', async (request, response) => {
       passwordHash: passwordHash,
       photo: photo ?? '',
       reviews: [],
-      stripeID: stripeID ?? '',
       locations: locations,
       deliveryRequests: [],
       catalog: []
@@ -92,7 +90,6 @@ usersRouter.post('/', async (request, response) => {
       passwordHash: passwordHash,
       photo: photo ?? '',
       reviews: [],
-      stripeID: stripeID ?? '',
       locations: locations,
       deliveryOffers: [],
     })
@@ -116,14 +113,13 @@ usersRouter.delete( '/:id', userExtractor, userValidator, async (request, respon
 })
 
 usersRouter.put('/update/:id', userExtractor, userValidator, async (request, response) => {
-  const { firstname, lastname, photo, stripeID, locations } = request.body
+  const { firstname, lastname, photo, locations } = request.body
 
   if(request.user.type === 'Buyer'){
     const receivedBuyer = {
       firstname: firstname,
       lastname: lastname,
       photo: photo,
-      stripeID: stripeID,
       locations: locations,
     }
 
@@ -140,7 +136,6 @@ usersRouter.put('/update/:id', userExtractor, userValidator, async (request, res
       firstname: firstname,
       lastname: lastname,
       photo: photo,
-      stripeID: stripeID,
       locations: locations
     }
 
@@ -157,7 +152,6 @@ usersRouter.put('/update/:id', userExtractor, userValidator, async (request, res
       firstname: firstname,
       lastname: lastname,
       photo: photo,
-      stripeID: stripeID,
       locations: locations
     }
 

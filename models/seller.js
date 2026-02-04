@@ -12,7 +12,7 @@ const Seller = User.discriminator('Seller', new mongoose.Schema({
   deliveryRequests: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'DeliveryRequest'
-  }],
+  }]
 }, options))
 
 module.exports = Seller
